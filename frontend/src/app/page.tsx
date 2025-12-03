@@ -16,14 +16,11 @@ export default function Home() {
             <span className="text-xl font-bold">Thirdweb</span>
           </div>
           <nav className="hidden md:flex items-center gap-8">
-            <a href="#" className="text-slate-300 hover:text-slate-100 transition-colors">
+            <a href="/" className="text-slate-300 hover:text-slate-100 transition-colors">
               Home
             </a>
-            <a href="#" className="text-slate-300 hover:text-slate-100 transition-colors">
-              About
-            </a>
-            <a href="#" className="text-slate-300 hover:text-slate-100 transition-colors">
-              Docs
+            <a href="/test-blockchain" className="text-slate-300 hover:text-slate-100 transition-colors">
+              Blockchain Test
             </a>
           </nav>
           <div className="hidden md:block">
