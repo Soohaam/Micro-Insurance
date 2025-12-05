@@ -1,7 +1,9 @@
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
-const connectDB = require("./config/db"); // <-- DB connection file
+const db = require("./models");
+const authRoutes = require("./routes/authRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 
 dotenv.config();
 
@@ -12,18 +14,21 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Connect to MongoDB
-connectDB();
+// Routes
+app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Root URL
 app.get("/", (req, res) => {
-  res.json({
-    message: "Backend server is running 🚀",
-    mongo: "MongoDB connection successful 🔗",
-  });
+  res.json({ message: "Backend server is running 🚀" });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+// Sync Database and Start Server
+db.sequelize.sync({ alter: true }).then(() => {
+  console.log("✅ Database synced successfully");
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+  });
+}).catch((err) => {
+  console.error("❌ Failed to sync database:", err.message);
 });

@@ -63,10 +63,16 @@ export default function Home() {
                 />
               </div>
               <a
-                href="#resources"
+                href="/register"
+                className="px-8 py-3 rounded-full border-2 border-emerald-500 text-emerald-400 font-medium hover:bg-emerald-500/10 transition-colors text-center"
+              >
+                Register
+              </a>
+              <a
+                href="/login"
                 className="px-8 py-3 rounded-full border-2 border-slate-700 text-slate-100 font-medium hover:bg-slate-800/50 transition-colors text-center"
               >
-                Explore Resources
+                Login
               </a>
             </div>
 
