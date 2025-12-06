@@ -22,11 +22,11 @@ module.exports = (sequelize, DataTypes) => {
         },
         phone: {
             type: DataTypes.STRING,
-            allowNull: false,
+            allowNull: true,
         },
         address: {
             type: DataTypes.JSONB, // Storing address as JSON object
-            allowNull: false,
+            allowNull: true,
         },
         passwordHash: {
             type: DataTypes.STRING,
@@ -34,7 +34,7 @@ module.exports = (sequelize, DataTypes) => {
         },
         walletAddress: {
             type: DataTypes.STRING,
-            allowNull: false,
+            allowNull: true,
             unique: true,
         },
         kycStatus: {
