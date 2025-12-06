@@ -1,279 +1,325 @@
-"use client";
+'use client';
 
-import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { useDropzone } from "react-dropzone";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { uploadDocuments, fetchDashboardStats } from "@/store/slices/companySlice";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Upload, Package, FileCheck, TrendingUp, Plus, Building2 } from "lucide-react";
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAppSelector } from '@/store/hooks';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, Upload, Package, FileText, DollarSign, TrendingUp, AlertCircle } from 'lucide-react';
+import { useDropzone } from 'react-dropzone';
+import axios from 'axios';
+
+interface CompanyStats {
+  totalProducts: number;
+  activePolicies: number;
+  totalPremiums: number;
+  totalPayouts: number;
+  poolBalance: number;
+  riskExposure: number;
+}
 
 export default function CompanyDashboard() {
   const router = useRouter();
-  const dispatch = useAppDispatch();
-  const { user, isAuthenticated } = useAppSelector((state) => state.auth);
-  const { stats, loading } = useAppSelector((state) => state.company);
+  const { user, token } = useAppSelector((state) => state.auth);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<CompanyStats | null>(null);
+  const [companyStatus, setCompanyStatus] = useState<string>('pending');
   const [uploading, setUploading] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState('');
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token || !isAuthenticated || user?.role !== "company") {
-      router.push("/login");
+    if (!user || user.role !== 'company') {
+      router.push('/login');
       return;
     }
+    fetchDashboardData();
+  }, [user, router]);
 
-    if (user?.status === "approved") {
-      dispatch(fetchDashboardStats());
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/company/dashboard/stats`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setStats(response.data.stats);
+      setCompanyStatus(response.data.companyStatus || 'pending');
+    } catch (error: any) {
+      console.error('Error fetching dashboard data:', error);
+      if (error.response?.status === 401) {
+        router.push('/login');
+      }
+    } finally {
+      setLoading(false);
     }
-  }, [dispatch, isAuthenticated, user, router]);
+  };
 
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+  const onDrop = async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
 
-    setUploading(true);
+    const formData = new FormData();
+    acceptedFiles.forEach((file) => {
+      formData.append('documents', file);
+    });
+
     try {
-      const result = await dispatch(uploadDocuments(acceptedFiles));
-      if (result.meta.requestStatus === "fulfilled") {
-        toast.success("Documents uploaded successfully! Awaiting admin approval.");
-      }
-    } catch (error) {
-      toast.error("Failed to upload documents");
+      setUploading(true);
+      setUploadMessage('');
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/company/documents`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+      setUploadMessage('Documents uploaded successfully! Awaiting admin approval.');
+      fetchDashboardData();
+    } catch (error: any) {
+      setUploadMessage(error.response?.data?.message || 'Upload failed. Please try again.');
     } finally {
       setUploading(false);
     }
-  }, [dispatch]);
+  };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
       'application/pdf': ['.pdf'],
-      'image/*': ['.png', '.jpg', '.jpeg']
+      'image/*': ['.png', '.jpg', '.jpeg'],
     },
-    maxSize: 10 * 1024 * 1024, // 10MB
     multiple: true,
-    disabled: uploading || user?.status === "approved",
   });
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <Loader2 className="w-12 h-12 text-blue-500 animate-spin" />
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  // PENDING STATUS - Show document upload
-  if (user?.status === "pending") {
-    return (
-      <div className="min-h-screen bg-slate-950 p-8">
-        <div className="max-w-4xl mx-auto">
-          <Card className="bg-slate-900/50 border-slate-800">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-3">
-                <Building2 className="w-8 h-8 text-blue-400" />
-                <div>
-                  <h1 className="text-2xl font-bold">Company Registration Pending</h1>
-                  <p className="text-sm text-slate-400 font-normal mt-1">
-                    Upload your company documents for admin verification
-                  </p>
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-                <p className="text-sm text-yellow-400">
-                  ⏳ Your company registration is pending approval. Please upload the required documents below.
-                </p>
-              </div>
+  const getStatusBadge = (status: string) => {
+    const statusConfig: Record<string, { variant: any; label: string }> = {
+      pending: { variant: 'secondary', label: 'Pending Approval' },
+      approved: { variant: 'default', label: 'Approved' },
+      rejected: { variant: 'destructive', label: 'Rejected' },
+      blocked: { variant: 'destructive', label: 'Blocked' },
+    };
+    const config = statusConfig[status] || statusConfig.pending;
+    return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
 
-              <div
-                {...getRootProps()}
-                className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all ${
-                  isDragActive
-                    ? 'border-blue-500 bg-blue-500/10'
-                    : uploading
-                    ? 'border-slate-600 bg-slate-800/50 cursor-not-allowed'
-                    : 'border-slate-700 hover:border-blue-500 hover:bg-slate-800/50'
-                }`}
-              >
-                <input {...getInputProps()} disabled={uploading} />
-                
-                {uploading ? (
-                  <div className="flex flex-col items-center">
-                    <Loader2 className="w-16 h-16 text-blue-500 animate-spin mb-4" />
-                    <p className="text-lg font-semibold">Uploading Documents...</p>
-                  </div>
-                ) : (
-                  <>
-                    <Upload className="w-16 h-16 mx-auto mb-4 text-slate-400" />
-                    {isDragActive ? (
-                      <p className="text-lg text-blue-400">Drop your documents here...</p>
-                    ) : (
-                      <>
-                        <p className="text-lg mb-2 font-semibold">
-                          Upload Company Documents
-                        </p>
-                        <p className="text-sm text-slate-400 mb-2">
-                          Drag & drop or click to select files
-                        </p>
-                        <div className="flex items-center justify-center gap-4 text-xs text-slate-500 mt-4">
-                          <span>PDF, JPG, PNG</span>
-                          <span>•</span>
-                          <span>Max 10MB per file</span>
-                          <span>•</span>
-                          <span>Multiple files allowed</span>
-                        </div>
-                      </>
-                    )}
-                  </>
-                )}
-              </div>
+  // if (companyStatus === 'pending') {
+  //   return (
+  //     <div className="container mx-auto p-6 max-w-4xl">
+  //       <Card className="border-2 border-dashed">
+  //         <CardHeader>
+  //           <div className="flex items-center justify-between">
+  //             <div>
+  //               <CardTitle className="text-2xl">Company Verification</CardTitle>
+  //               <CardDescription>Your company registration is pending approval</CardDescription>
+  //             </div>
+  //             {getStatusBadge(companyStatus)}
+  //           </div>
+  //         </CardHeader>
+  //         <CardContent className="space-y-6">
+  //           <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+  //             <div className="flex items-start gap-3">
+  //               <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+  //               <div>
+  //                 <h3 className="font-semibold text-blue-900 dark:text-blue-100">
+  //                   Upload Required Documents
+  //                 </h3>
+  //                 <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+  //                   Please upload your company registration documents, business license, and any other
+  //                   relevant certificates to proceed with verification.
+  //                 </p>
+  //               </div>
+  //             </div>
+  //           </div>
 
-              <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                <p className="text-sm text-blue-400 mb-2 font-semibold">📋 Required Documents:</p>
-                <ul className="text-sm text-slate-300 space-y-1 list-disc list-inside">
-                  <li>Company Registration Certificate</li>
-                  <li>Insurance License</li>
-                  <li>Tax Registration (GST/PAN)</li>
-                  <li>Director's ID Proof</li>
-                  <li>Office Address Proof</li>
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
+  //           <div
+  //             {...getRootProps()}
+  //             className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
+  //               isDragActive
+  //                 ? 'border-primary bg-primary/5'
+  //                 : 'border-gray-300 dark:border-gray-700 hover:border-primary'
+  //             }`}
+  //           >
+  //             <input {...getInputProps()} />
+  //             <Upload className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+  //             {uploading ? (
+  //               <div className="flex items-center justify-center gap-2">
+  //                 <Loader2 className="h-5 w-5 animate-spin" />
+  //                 <p>Uploading documents...</p>
+  //               </div>
+  //             ) : (
+  //               <>
+  //                 <p className="text-lg font-medium mb-2">
+  //                   {isDragActive ? 'Drop files here' : 'Drag & drop documents here'}
+  //                 </p>
+  //                 <p className="text-sm text-gray-500">or click to browse files</p>
+  //                 <p className="text-xs text-gray-400 mt-2">Supported: PDF, PNG, JPG (Max 10MB each)</p>
+  //               </>
+  //             )}
+  //           </div>
 
-  // APPROVED STATUS - Show dashboard
+  //           {uploadMessage && (
+  //             <div
+  //               className={`p-4 rounded-lg ${
+  //                 uploadMessage.includes('success')
+  //                   ? 'bg-green-50 dark:bg-green-950 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-800'
+  //                   : 'bg-red-50 dark:bg-red-950 text-red-800 dark:text-red-200 border border-red-200 dark:border-red-800'
+  //               }`}
+  //             >
+  //               {uploadMessage}
+  //             </div>
+  //           )}
+  //         </CardContent>
+  //       </Card>
+  //     </div>
+  //   );
+  // }
+
+  // if (companyStatus === 'rejected' || companyStatus === 'blocked') {
+  //   return (
+  //     <div className="container mx-auto p-6 max-w-4xl">
+  //       <Card className="border-destructive">
+  //         <CardHeader>
+  //           <div className="flex items-center justify-between">
+  //             <CardTitle className="text-2xl">Company Status</CardTitle>
+  //             {getStatusBadge(companyStatus)}
+  //           </div>
+  //         </CardHeader>
+  //         <CardContent>
+  //           <div className="bg-red-50 dark:bg-red-950 p-6 rounded-lg border border-red-200 dark:border-red-800">
+  //             <h3 className="font-semibold text-red-900 dark:text-red-100 mb-2">
+  //               {companyStatus === 'rejected' ? 'Application Rejected' : 'Account Blocked'}
+  //             </h3>
+  //             <p className="text-red-700 dark:text-red-300">
+  //               {companyStatus === 'rejected'
+  //                 ? 'Your company registration has been rejected. Please contact support for more information.'
+  //                 : 'Your company account has been blocked. Please contact support to resolve this issue.'}
+  //             </p>
+  //           </div>
+  //         </CardContent>
+  //       </Card>
+  //     </div>
+  //   );
+  // }
+
   return (
-    <div className="min-h-screen bg-slate-950 p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Company Dashboard</h1>
-          <p className="text-slate-400">Manage your insurance products and policies</p>
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Company Dashboard</h1>
+          <p className="text-muted-foreground">Manage your insurance products and policies</p>
         </div>
-
-        {/* Stats Grid */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 border-blue-500/30">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-blue-200">Total Products</CardTitle>
-              <Package className="h-5 w-5 text-blue-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-white">{stats?.totalProducts || 0}</div>
-              <p className="text-xs text-blue-300 mt-1">
-                {stats?.activeProducts || 0} active
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 border-emerald-500/30">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-emerald-200">Active Policies</CardTitle>
-              <FileCheck className="h-5 w-5 text-emerald-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-white">{stats?.activePolicies || 0}</div>
-              <p className="text-xs text-emerald-300 mt-1">
-                {stats?.totalPolicies || 0} total
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 border-purple-500/30">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-purple-200">Total Premiums</CardTitle>
-              <TrendingUp className="h-5 w-5 text-purple-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-white">
-                ₹{(stats?.totalPremiums || 0).toLocaleString()}
-              </div>
-              <p className="text-xs text-purple-300 mt-1">Collected</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-orange-500/20 to-orange-600/20 border-orange-500/30">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-orange-200">Pool Balance</CardTitle>
-              <TrendingUp className="h-5 w-5 text-orange-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-white">
-                ₹{(stats?.poolBalance || 0).toLocaleString()}
-              </div>
-              <p className="text-xs text-orange-300 mt-1">Available</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid md:grid-cols-2 gap-6">
-          <Card className="bg-slate-900/50 border-slate-800">
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button
-                onClick={() => router.push('/dashboard/company/products/create')}
-                className="w-full bg-blue-500 hover:bg-blue-600 justify-start"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Create New Product
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => router.push('/dashboard/company/products')}
-                className="w-full justify-start"
-              >
-                <Package className="mr-2 h-4 w-4" />
-                Manage Products
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => router.push('/dashboard/company/policies')}
-                className="w-full justify-start"
-              >
-                <FileCheck className="mr-2 h-4 w-4" />
-                View Policies
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-slate-900/50 border-slate-800">
-            <CardHeader>
-              <CardTitle>Company Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div>
-                <p className="text-slate-400">Company Name</p>
-                <p className="font-semibold">{user?.name}</p>
-              </div>
-              <div>
-                <p className="text-slate-400">Email</p>
-                <p className="font-semibold">{user?.email}</p>
-              </div>
-              <div>
-                <p className="text-slate-400">Status</p>
-                <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-medium">
-                  {user?.status?.toUpperCase()}
-                </span>
-              </div>
-              {user?.walletAddress && (
-                <div>
-                  <p className="text-slate-400">Wallet Address</p>
-                  <p className="font-mono text-xs">{user.walletAddress}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        {getStatusBadge(companyStatus)}
       </div>
+
+      {/* Stats Grid */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Products</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.totalProducts || 0}</div>
+            <p className="text-xs text-muted-foreground">Insurance products created</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Policies</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.activePolicies || 0}</div>
+            <p className="text-xs text-muted-foreground">Currently active</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Premiums</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">₹{stats?.totalPremiums?.toLocaleString() || 0}</div>
+            <p className="text-xs text-muted-foreground">Collected from policies</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Payouts</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">₹{stats?.totalPayouts?.toLocaleString() || 0}</div>
+            <p className="text-xs text-muted-foreground">Claims paid out</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pool Balance</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">₹{stats?.poolBalance?.toLocaleString() || 0}</div>
+            <p className="text-xs text-muted-foreground">Available funds</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Risk Exposure</CardTitle>
+            <AlertCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">₹{stats?.riskExposure?.toLocaleString() || 0}</div>
+            <p className="text-xs text-muted-foreground">Total insured amount</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Quick Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Quick Actions</CardTitle>
+          <CardDescription>Manage your insurance business</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-3">
+          <Button onClick={() => router.push('/dashboard/company/products/create')} className="h-24">
+            <div className="flex flex-col items-center gap-2">
+              <Package className="h-6 w-6" />
+              <span>Create New Product</span>
+            </div>
+          </Button>
+          <Button onClick={() => router.push('/dashboard/company/products')} variant="outline" className="h-24">
+            <div className="flex flex-col items-center gap-2">
+              <FileText className="h-6 w-6" />
+              <span>View Products</span>
+            </div>
+          </Button>
+          <Button onClick={() => router.push('/dashboard/company/policies')} variant="outline" className="h-24">
+            <div className="flex flex-col items-center gap-2">
+              <TrendingUp className="h-6 w-6" />
+              <span>View Policies</span>
+            </div>
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }

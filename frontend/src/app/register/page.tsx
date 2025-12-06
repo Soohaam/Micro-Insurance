@@ -19,6 +19,7 @@ const userSchema = z.object({
   fullName: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   phone: z.string().regex(/^\d{10}$/, "Phone must be 10 digits"),
+  walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum wallet address").optional().or(z.literal("")),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string(),
   address: z.object({
@@ -46,6 +47,7 @@ const companySchema = z.object({
     state: z.string().min(2, "State required"),
     pincode: z.string().regex(/^\d{6}$/, "Pincode must be 6 digits"),
   }),
+  documents: z.any().optional(), // File upload field
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -63,6 +65,7 @@ export default function Register() {
       fullName: "",
       email: "",
       phone: "",
+      walletAddress: "",
       password: "",
       confirmPassword: "",
       address: {
@@ -188,6 +191,21 @@ export default function Register() {
                     {userForm.formState.errors.phone && (
                       <p className="text-red-400 text-xs mt-1">
                         {userForm.formState.errors.phone.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="walletAddress">Wallet Address (Optional)</Label>
+                    <Input
+                      id="walletAddress"
+                      placeholder="0x..."
+                      className="bg-slate-800/50 border-slate-700"
+                      {...userForm.register("walletAddress")}
+                    />
+                    {userForm.formState.errors.walletAddress && (
+                      <p className="text-red-400 text-xs mt-1">
+                        {userForm.formState.errors.walletAddress.message}
                       </p>
                     )}
                   </div>

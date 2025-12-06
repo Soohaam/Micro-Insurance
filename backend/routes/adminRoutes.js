@@ -25,6 +25,7 @@ router.get('/kyc/:kycId', kycController.getKYCById);
 router.put('/kyc/:kycId/status', kycController.updateKYCStatus);
 
 // Product approval management
+router.get('/products', adminController.getProducts);
 router.get('/products/pending', adminController.getPendingProducts);
 router.get('/products/:productId', adminController.getProductById);
 router.put('/products/:productId/status', adminController.updateProductStatus);

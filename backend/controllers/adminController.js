@@ -314,6 +314,42 @@ exports.getPlatformStats = async (req, res) => {
 };
 
 /**
+ * Get all products (with optional status filter)
+ */
+exports.getProducts = async (req, res) => {
+    try {
+        const { status } = req.query;
+        const Product = db.Product;
+        const Company = db.Company;
+
+        const where = {};
+        if (status && status !== 'all') {
+            where.approvalStatus = status;
+        }
+
+        const products = await Product.findAll({
+            where,
+            include: [{
+                model: Company,
+                as: 'company',
+                attributes: ['companyId', 'companyName', 'companyEmail'],
+            }],
+            order: [['createdAt', 'DESC']],
+        });
+
+        res.json({
+            count: products.length,
+            products,
+        });
+    } catch (error) {
+        res.status(500).json({
+            message: "Error fetching products",
+            error: error.message,
+        });
+    }
+};
+
+/**
  * Get pending product approvals
  */
 exports.getPendingProducts = async (req, res) => {
