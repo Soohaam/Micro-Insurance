@@ -14,6 +14,8 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { useActiveAccount, ConnectButton } from "thirdweb/react";
+import { client } from "../client";
 
 const userSchema = z.object({
   fullName: z.string().min(2, "Name must be at least 2 characters"),
@@ -22,6 +24,7 @@ const userSchema = z.object({
   walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum wallet address").optional().or(z.literal("")),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string(),
+  walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum wallet address").optional().or(z.literal("")),
   address: z.object({
     street: z.string().min(5, "Street address required"),
     city: z.string().min(2, "City required"),
@@ -58,6 +61,7 @@ export default function Register() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { loading, error } = useAppSelector((state) => state.auth);
+  const account = useActiveAccount();
 
   const userForm = useForm({
     resolver: zodResolver(userSchema),
@@ -68,6 +72,7 @@ export default function Register() {
       walletAddress: "",
       password: "",
       confirmPassword: "",
+      walletAddress: "",
       address: {
         street: "",
         city: "",
@@ -103,10 +108,20 @@ export default function Register() {
     }
   }, [error, dispatch]);
 
+  // Auto-fill wallet address when connected
+  useEffect(() => {
+    console.log("Wallet detection effect triggered:", account);
+    if (account?.address) {
+      console.log("Setting wallet address:", account.address);
+      userForm.setValue("walletAddress", account.address);
+      toast.success(`Wallet connected: ${account.address.slice(0, 6)}...${account.address.slice(-4)}`);
+    }
+  }, [account, userForm]);
+
   const onUserSubmit = async (data: any) => {
     const { confirmPassword, ...userData } = data;
     const result = await dispatch(registerUser(userData));
-    
+
     if (result.meta.requestStatus === "fulfilled") {
       toast.success("Registration successful! Please complete KYC verification.");
       router.push("/kyc");
@@ -116,7 +131,7 @@ export default function Register() {
   const onCompanySubmit = async (data: any) => {
     const { confirmPassword, ...companyData } = data;
     const result = await dispatch(registerCompany(companyData));
-    
+
     if (result.meta.requestStatus === "fulfilled") {
       toast.success("Company registered! Please login and upload documents for approval.");
       router.push("/login");
@@ -133,6 +148,15 @@ export default function Register() {
           <CardDescription className="text-center text-slate-400">
             Register as a user or insurance company
           </CardDescription>
+          <div className="flex justify-center mt-4">
+            <ConnectButton
+              client={client}
+              appMetadata={{
+                name: "Micro Insurance Platform",
+                url: "https://example.com",
+              }}
+            />
+          </div>
         </CardHeader>
         <CardContent>
           <Tabs value={tab} onValueChange={setTab} className="w-full">
@@ -144,6 +168,16 @@ export default function Register() {
                 Company Registration
               </TabsTrigger>
             </TabsList>
+
+            {/* Wallet Connection Status */}
+            {account?.address && (
+              <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                <p className="text-sm text-emerald-400">
+                  Wallet Connected: {account.address.slice(0, 6)}...{account.address.slice(-4)}
+                </p>
+              </div>
+            )}
 
             {/* USER REGISTRATION */}
             <TabsContent value="user">
@@ -206,6 +240,11 @@ export default function Register() {
                     {userForm.formState.errors.walletAddress && (
                       <p className="text-red-400 text-xs mt-1">
                         {userForm.formState.errors.walletAddress.message}
+                      </p>
+                    )}
+                    {account?.address && (
+                      <p className="text-emerald-400 text-xs mt-1">
+                        ✓ Auto-filled from connected wallet
                       </p>
                     )}
                   </div>
