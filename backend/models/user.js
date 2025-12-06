@@ -57,5 +57,21 @@ module.exports = (sequelize, DataTypes) => {
         timestamps: true,
     });
 
+    User.associate = (models) => {
+        User.hasOne(models.KYC, {
+            foreignKey: 'userId',
+            as: 'kyc',
+        });
+        User.hasMany(models.Policy, {
+            foreignKey: 'userId',
+            as: 'policies',
+        });
+        User.hasMany(models.Claim, {
+            foreignKey: 'userId',
+            as: 'claims',
+        });
+    };
+
     return User;
 };
+

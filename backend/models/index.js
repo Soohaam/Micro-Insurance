@@ -21,5 +21,16 @@ db.sequelize = sequelize;
 db.User = require('./user')(sequelize, Sequelize);
 db.Company = require('./company')(sequelize, Sequelize);
 db.Admin = require('./admin')(sequelize, Sequelize);
+db.KYC = require('./kyc')(sequelize, Sequelize);
+db.Product = require('./product')(sequelize, Sequelize);
+db.Policy = require('./policy')(sequelize, Sequelize);
+db.Claim = require('./claim')(sequelize, Sequelize);
+
+// Set up associations
+Object.keys(db).forEach((modelName) => {
+    if (db[modelName].associate) {
+        db[modelName].associate(db);
+    }
+});
 
 module.exports = db;

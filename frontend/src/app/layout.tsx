@@ -2,13 +2,15 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThirdwebProvider } from "thirdweb/react";
+import { ReduxProvider } from "@/components/providers/ReduxProvider";
+import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "thirdweb SDK + Next starter",
+  title: "Micro Insurance Platform",
   description:
-    "Starter template for using thirdweb SDK with Next.js App router",
+    "Blockchain-enabled parametric micro-insurance platform with KYC verification and automated claims",
 };
 
 export default function RootLayout({
@@ -19,7 +21,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <ThirdwebProvider>{children}</ThirdwebProvider>
+        <ReduxProvider>
+          <ThirdwebProvider>
+            {children}
+            <Toaster position="top-right" richColors />
+          </ThirdwebProvider>
+        </ReduxProvider>
       </body>
     </html>
   );

@@ -1,20 +1,30 @@
 {
-    "name": "backend",
+    "name": "micro-insurance-backend",
     "version": "1.0.0",
+    "description": "Backend API for Micro Insurance Platform with blockchain integration, KYC verification, and parametric insurance",
     "main": "index.js",
     "scripts": {
         "start": "node index.js",
         "dev": "nodemon index.js",
+        "seed:admin": "node scripts/seedAdmin.js",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
-    "keywords": [],
+    "keywords": [
+        "insurance",
+        "blockchain",
+        "parametric",
+        "microinsurance",
+        "kyc",
+        "metamask",
+        "web3"
+    ],
     "author": "",
-    "license": "ISC",
-    "description": "",
+    "license": "MIT",
     "dependencies": {
         "@google/generative-ai": "^0.24.1",
         "axios": "^1.12.1",
         "bcryptjs": "^3.0.3",
+        "cloudinary": "^2.5.1",
         "cors": "^2.8.5",
         "csv-parser": "^3.2.0",
         "dotenv": "^17.2.2",
@@ -22,12 +32,15 @@
         "jsonwebtoken": "^9.0.3",
         "mongoose": "^8.18.1",
         "multer": "^2.0.2",
+        "multer-storage-cloudinary": "^4.0.0",
         "node-fetch": "^2.7.0",
         "nodemon": "^3.1.10",
         "pg": "^8.16.3",
         "pg-hstore": "^2.3.4",
         "sequelize": "^6.37.7",
         "sequelize-cli": "^6.6.3",
+        "sharp": "^0.33.5",
+        "tesseract.js": "^5.1.1",
         "xlsx": "^0.18.5"
     }
 }

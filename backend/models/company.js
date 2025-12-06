@@ -68,5 +68,17 @@ module.exports = (sequelize, DataTypes) => {
         timestamps: true,
     });
 
+    Company.associate = (models) => {
+        Company.hasMany(models.Product, {
+            foreignKey: 'companyId',
+            as: 'products',
+        });
+        Company.hasMany(models.Policy, {
+            foreignKey: 'companyId',
+            as: 'policies',
+        });
+    };
+
     return Company;
 };
+
