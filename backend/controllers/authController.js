@@ -32,19 +32,19 @@ exports.registerUser = async (req, res) => {
             phone,
             address,
             passwordHash,
-            walletAddress: walletAddress || `temp_${Date.now()}`, // Temporary, will be updated when MetaMask connects
+            walletAddress: walletAddress || null,
             kycStatus: 'pending',
         });
 
         // Generate JWT token
         const token = jwt.sign(
-            { id: user.userId, role: user.role }, 
-            process.env.JWT_SECRET || "secret", 
+            { id: user.userId, role: user.role },
+            process.env.JWT_SECRET || "secret",
             { expiresIn: "7d" }
         );
 
-        res.status(201).json({ 
-            message: "User registered successfully. Please complete KYC verification.", 
+        res.status(201).json({
+            message: "User registered successfully. Please complete KYC verification.",
             user: {
                 userId: user.userId,
                 fullName: user.fullName,
@@ -91,8 +91,8 @@ exports.registerCompany = async (req, res) => {
             status: 'pending', // Needs admin approval
         });
 
-        res.status(201).json({ 
-            message: "Company registered successfully. Pending admin approval.", 
+        res.status(201).json({
+            message: "Company registered successfully. Pending admin approval.",
             company: {
                 companyId: company.companyId,
                 companyName: company.companyName,
@@ -120,31 +120,31 @@ exports.login = async (req, res) => {
             if (!user) {
                 return res.status(404).json({ message: "Admin not found" });
             }
-            
+
             // Check if admin is active
             if (!user.isActive) {
                 return res.status(403).json({ message: "Admin account is deactivated" });
             }
-            
+
             isMatch = await bcrypt.compare(password, user.passwordHash);
-            
+
             if (!isMatch) {
                 return res.status(401).json({ message: "Invalid admin credentials" });
             }
-            
+
             // Update last login
             user.lastLogin = new Date();
             await user.save();
-            
+
             const token = jwt.sign(
-                { id: user.adminId, role: "admin" }, 
-                process.env.JWT_SECRET || "secret", 
+                { id: user.adminId, role: "admin" },
+                process.env.JWT_SECRET || "secret",
                 { expiresIn: "24h" }
             );
-            
-            return res.json({ 
-                message: "Admin login successful", 
-                token, 
+
+            return res.json({
+                message: "Admin login successful",
+                token,
                 role: "admin",
                 user: {
                     id: user.adminId,
@@ -157,20 +157,20 @@ exports.login = async (req, res) => {
             user = await Company.findOne({ where: { companyEmail: email } });
             if (!user) return res.status(404).json({ message: "Company not found" });
             isMatch = await bcrypt.compare(password, user.passwordHash);
-            
+
             if (!isMatch) {
                 return res.status(401).json({ message: "Invalid credentials" });
             }
 
             const token = jwt.sign(
-                { id: user.companyId, role: "company" }, 
-                process.env.JWT_SECRET || "secret", 
+                { id: user.companyId, role: "company" },
+                process.env.JWT_SECRET || "secret",
                 { expiresIn: "7d" }
             );
 
-            return res.json({ 
-                message: "Login successful", 
-                token, 
+            return res.json({
+                message: "Login successful",
+                token,
                 role: "company",
                 user: {
                     id: user.companyId,
@@ -192,14 +192,14 @@ exports.login = async (req, res) => {
         }
 
         const token = jwt.sign(
-            { id: user.userId, role: "user" }, 
-            process.env.JWT_SECRET || "secret", 
+            { id: user.userId, role: "user" },
+            process.env.JWT_SECRET || "secret",
             { expiresIn: "7d" }
         );
 
-        res.json({ 
-            message: "Login successful", 
-            token, 
+        res.json({
+            message: "Login successful",
+            token,
             role: "user",
             user: {
                 id: user.userId,
@@ -245,11 +245,11 @@ exports.updateWalletAddress = async (req, res) => {
     try {
         const { walletAddress } = req.body;
         const token = req.headers.authorization?.split(" ")[1];
-        
+
         if (!token) return res.status(401).json({ message: "No token provided" });
-        
+
         const decoded = jwt.verify(token, process.env.JWT_SECRET || "secret");
-        
+
         if (!walletAddress || !walletAddress.startsWith('0x')) {
             return res.status(400).json({ message: "Invalid wallet address" });
         }
@@ -261,10 +261,10 @@ exports.updateWalletAddress = async (req, res) => {
             if (existingWallet && existingWallet.companyId !== decoded.id) {
                 return res.status(400).json({ message: "Wallet address already in use" });
             }
-            
+
             user = await Company.findByPk(decoded.id);
             if (!user) return res.status(404).json({ message: "Company not found" });
-            
+
             user.walletAddress = walletAddress;
             await user.save();
         } else if (decoded.role === "user") {
@@ -273,19 +273,19 @@ exports.updateWalletAddress = async (req, res) => {
             if (existingWallet && existingWallet.userId !== decoded.id) {
                 return res.status(400).json({ message: "Wallet address already in use" });
             }
-            
+
             user = await User.findByPk(decoded.id);
             if (!user) return res.status(404).json({ message: "User not found" });
-            
+
             user.walletAddress = walletAddress;
             await user.save();
         } else {
             return res.status(403).json({ message: "Invalid role" });
         }
 
-        res.json({ 
-            message: "Wallet address updated successfully", 
-            walletAddress: user.walletAddress 
+        res.json({
+            message: "Wallet address updated successfully",
+            walletAddress: user.walletAddress
         });
     } catch (error) {
         res.status(500).json({ message: "Error updating wallet address", error: error.message });
