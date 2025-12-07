@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, ArrowLeft, Shield, MapPin, Calendar, Activity, CheckCircle, Wallet } from 'lucide-react';
+import { Loader2, ArrowLeft, Shield, MapPin, Calendar, Activity, CheckCircle, Wallet, Copy } from 'lucide-react';
 import axios from 'axios';
 import { useActiveAccount, ConnectButton } from "thirdweb/react";
 import { client } from "@/app/client";
@@ -20,8 +20,8 @@ interface Product {
     companyId: string;
     companyName: string;
     companyEmail: string;
-    companyWalletAddress?: string;
   };
+  companyWalletAddress?: string; // ← Now coming directly from Product
   policyType: string;
   coverageType: string;
   baseRate: number;
@@ -65,27 +65,22 @@ export default function PurchaseProduct() {
     }
   };
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success('Wallet address copied!');
+  };
+
   const handlePurchase = async () => {
     if (!account?.address) {
       toast.error('Please connect your wallet first');
       return;
     }
-
     if (!product) return;
 
     try {
       setPurchasing(true);
-
-      // Here you would implement the actual purchase logic
-      // For now, just showing a success message
       toast.success('Purchase functionality coming soon!');
-
-      // TODO: Implement smart contract interaction
-      // TODO: Create policy in backend
-      // TODO: Navigate to confirmation page
-
     } catch (error: any) {
-      console.error('Purchase error:', error);
       toast.error(error.response?.data?.message || 'Purchase failed');
     } finally {
       setPurchasing(false);
@@ -102,7 +97,7 @@ export default function PurchaseProduct() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950">
-      {/* Sticky Header with Wallet */}
+      {/* Sticky Header */}
       <header className="border-b border-slate-800/30 backdrop-blur-sm sticky top-0 z-50 bg-slate-900/80">
         <div className="container max-w-screen-xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -117,15 +112,7 @@ export default function PurchaseProduct() {
               <span className="text-xl font-bold text-white">Purchase Insurance</span>
             </div>
           </div>
-
-          {/* ConnectButton */}
-          <ConnectButton
-            client={client}
-            appMetadata={{
-              name: "Micro Insurance Platform",
-              url: "https://yourdomain.com",
-            }}
-          />
+          <ConnectButton client={client} appMetadata={{ name: "Micro Insurance Platform", url: "https://yourdomain.com" }} />
         </div>
       </header>
 
@@ -153,12 +140,36 @@ export default function PurchaseProduct() {
               <CardContent className="space-y-6">
                 <div>
                   <h3 className="text-lg font-semibold text-white mb-3">About this Policy</h3>
-                  <p className="text-slate-300 leading-relaxed text-lg">
-                    {product.description}
-                  </p>
+                  <p className="text-slate-300 leading-relaxed text-lg">{product.description}</p>
                 </div>
 
                 <Separator className="bg-slate-700" />
+
+                {/* Company Wallet Address */}
+                {product.companyWalletAddress && (
+                  <div className="bg-slate-800/50 border border-slate-700 p-5 rounded-lg">
+                    <h4 className="font-semibold flex items-center gap-2 mb-3 text-white">
+                      <Wallet className="h-5 w-5 text-emerald-400" />
+                      Payout Wallet Address
+                    </h4>
+                    <div className="flex items-center justify-between bg-slate-900/70 rounded-md p-3">
+                      <code className="text-xs sm:text-sm font-mono text-emerald-300 break-all">
+                        {product.companyWalletAddress}
+                      </code>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => copyToClipboard(product.companyWalletAddress!)}
+                        className="ml-2 hover:bg-slate-700"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-2">
+                      Claims will be paid to your wallet from this wallet address automatically via smart contract
+                    </p>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="bg-slate-800/50 p-4 rounded-lg">
@@ -204,7 +215,7 @@ export default function PurchaseProduct() {
                       Sum Insured Range
                     </h4>
                     <p className="text-lg font-medium text-slate-200">
-                      {product.sumInsuredMin} - {product.sumInsuredMax} ETH
+                      {product.sumInsuredMin.toLocaleString()} - {product.sumInsuredMax.toLocaleString()} INR
                     </p>
                   </div>
                 </div>
@@ -223,7 +234,7 @@ export default function PurchaseProduct() {
                 <div className="space-y-4">
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-400">Product</span>
-                    <span className="font-medium text-white">{product.productName}</span>
+                    <span className="font-medium text-white truncate max-w-[200px]">{product.productName}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-400">Provider</span>
@@ -240,19 +251,19 @@ export default function PurchaseProduct() {
                 <div className="flex justify-between items-end">
                   <span className="font-semibold text-white">Total Cost</span>
                   <span className="text-3xl font-bold text-emerald-400">
-                    {product.cost ? `${product.cost} ETH` : 'N/A'}
+                    {product.cost ? `${product.cost} ETH` : 'Calculated on purchase'}
                   </span>
                 </div>
 
                 <Separator className="bg-slate-700" />
 
-                {/* Wallet Status */}
+                {/* User's Wallet */}
                 {account?.address ? (
                   <div className="bg-emerald-500/10 border border-emerald-500/30 p-4 rounded-lg">
                     <div className="flex items-center gap-3">
                       <CheckCircle className="h-6 w-6 text-emerald-400 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-emerald-400 text-sm">Wallet Connected</h4>
+                        <h4 className="font-semibold text-emerald-400 text-sm">Your Wallet</h4>
                         <p className="text-xs font-mono text-emerald-300 truncate">
                           {account.address}
                         </p>
@@ -263,20 +274,14 @@ export default function PurchaseProduct() {
                   <div className="bg-slate-800/50 border border-slate-700 p-4 rounded-lg text-center">
                     <Wallet className="h-8 w-8 mx-auto text-slate-500 mb-2" />
                     <p className="text-sm text-slate-400 mb-3">Connect wallet to purchase</p>
-                    <ConnectButton
-                      client={client}
-                      appMetadata={{
-                        name: "Micro Insurance Platform",
-                        url: "https://yourdomain.com",
-                      }}
-                    />
+                    <ConnectButton client={client} appMetadata={{ name: "Micro Insurance Platform", url: "https://yourdomain.com" }} />
                   </div>
                 )}
               </CardContent>
               <CardFooter>
                 <Button
                   onClick={handlePurchase}
-                  disabled={!account?.address || purchasing || !product.cost}
+                  disabled={!account?.address || purchasing}
                   className="w-full h-12 text-lg bg-emerald-600 hover:bg-emerald-700"
                   size="lg"
                 >
