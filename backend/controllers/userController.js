@@ -4,6 +4,7 @@ const Product = db.Product;
 const Policy = db.Policy;
 const Company = db.Company;
 const Claim = db.Claim;
+const PurchasedProduct = db.PurchasedProduct;
 
 /**
  * Browse all available insurance products
@@ -269,12 +270,16 @@ exports.getMyPolicies = async (req, res) => {
         const { status } = req.query;
 
         const where = { userId };
-        if (status) {
-            where.status = status;
-        }
+        // Note: 'status' field might not exist on PurchasedProduct directly in the same way, 
+        // effectively filtering by calculated status might be harder in DB query, 
+        // so we might filter in memory or rely on mapped status.
+        // For now, let's fetch all and filter in memory if needed or ignore status query for DB 
+        // if PurchasedProduct doesn't store 'active'/'expired' explicitly.
+        // However, the frontend sends 'active', 'expired', 'claimed' (which implies it expects filter).
+        // Let's fetch all then filter after mapping.
 
-        const policies = await Policy.findAll({
-            where,
+        const purchases = await PurchasedProduct.findAll({
+            where: { userId },
             include: [
                 {
                     model: Product,
@@ -290,24 +295,53 @@ exports.getMyPolicies = async (req, res) => {
             order: [['createdAt', 'DESC']],
         });
 
-        // Calculate days remaining for each policy
-        const policiesWithDetails = policies.map(policy => {
+        // Map to frontend Policy interface
+        const policiesWithDetails = purchases.map(purchase => {
             const now = new Date();
-            const endDate = new Date(policy.endDate);
+            const startDate = new Date(purchase.purchaseDate);
+            const durationDays = purchase.duration || 365; // Default to 1 year if missing
+            const endDate = new Date(startDate);
+            endDate.setDate(endDate.getDate() + durationDays);
+
             const daysRemaining = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
 
+            let currentStatus = 'active';
+            if (daysRemaining <= 0) {
+                currentStatus = 'expired';
+            }
+            // Logic for 'claimed' is not yet linked to PurchasedProduct easily without joining Claims
+            // For now, we stick to active/expired.
+
             return {
-                ...policy.toJSON(),
+                _id: purchase.purchaseId,
+                policyNumber: purchase.purchaseId.substring(0, 8).toUpperCase(), // Fake a policy number from ID
+                product: {
+                    productName: purchase.productName || (purchase.product ? purchase.product.productName : 'Unknown Product'),
+                    coverageType: purchase.policyType || (purchase.product ? purchase.product.coverageType : 'Unknown Type'), // usage of policyType for coverageType slot
+                },
+                company: {
+                    name: purchase.company ? purchase.company.companyName : 'Unknown Company',
+                },
+                sumInsured: parseFloat(purchase.coverageAmount || 0),
+                premiumPaid: parseFloat(purchase.cost || 0),
+                startDate: startDate.toISOString(),
+                endDate: endDate.toISOString(),
+                status: currentStatus,
                 daysRemaining: daysRemaining > 0 ? daysRemaining : 0,
-                isExpired: daysRemaining <= 0,
             };
         });
 
+        // Apply status filter if present
+        const filteredPolicies = status && status !== 'all'
+            ? policiesWithDetails.filter(p => p.status === status)
+            : policiesWithDetails;
+
         res.json({
-            count: policiesWithDetails.length,
-            policies: policiesWithDetails,
+            count: filteredPolicies.length,
+            policies: filteredPolicies,
         });
     } catch (error) {
+        console.error("Error fetching policies:", error);
         res.status(500).json({
             message: "Error fetching policies",
             error: error.message

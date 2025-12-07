@@ -25,6 +25,7 @@ db.KYC = require('./kyc')(sequelize, Sequelize);
 db.Product = require('./product')(sequelize, Sequelize);
 db.Policy = require('./policy')(sequelize, Sequelize);
 db.Claim = require('./claim')(sequelize, Sequelize);
+db.PurchasedProduct = require('./purchasedProduct')(sequelize, Sequelize);
 
 // Set up associations
 Object.keys(db).forEach((modelName) => {

@@ -1,11 +1,126 @@
 "use client"
 
+import { useState, useMemo } from "react"
 import thirdwebIcon from "@public/thirdweb.svg"
 import Image from "next/image"
-import { ConnectButton } from "thirdweb/react"
+import { ConnectButton, useActiveAccount, useReadContract } from "thirdweb/react"
 import { client } from "./client"
+import { sepolia } from "thirdweb/chains"
+import { getContract } from "thirdweb"
+
+const CONTRACT_ADDRESS = "0xae39f8734faee1f4514c1a5203d0a0eaef1dd069"
+const POLICIES_PER_PAGE = 5
+
+const contract = getContract({
+  client,
+  chain: sepolia,
+  address: CONTRACT_ADDRESS,
+})
+
+// Component to display a single policy
+function PolicyCard({ policyId, account }: { policyId: number; account: any }) {
+  const { data: policyData, isLoading } = useReadContract({
+    contract,
+    method: "function getPolicy(uint256) view returns (address holder, uint256 premium, uint256 coverageAmount, bool isActive, uint256 createdAt)",
+    params: [BigInt(policyId)],
+  })
+
+  if (isLoading) {
+    return (
+      <div className="bg-slate-800/30 p-5 rounded-lg border border-slate-700/50 animate-pulse">
+        <div className="h-4 bg-slate-700 rounded w-1/4 mb-3"></div>
+        <div className="h-4 bg-slate-700 rounded w-3/4"></div>
+      </div>
+    )
+  }
+
+  if (!policyData) return null
+
+  const formatDate = (timestamp: bigint) => {
+    return new Date(Number(timestamp) * 1000).toLocaleString()
+  }
+
+  const formatEth = (wei: bigint) => {
+    return (Number(wei) / 1e18).toFixed(4)
+  }
+
+  const isUserPolicy = account && policyData[0].toLowerCase() === account.address.toLowerCase()
+
+  return (
+    <div className="bg-gradient-to-r from-slate-800/50 to-slate-900/50 p-5 rounded-lg border border-slate-700/50 hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-300">
+      <div className="flex justify-between items-start mb-3">
+        <div>
+          <span className="inline-block bg-emerald-500 text-slate-900 text-xs font-bold px-3 py-1 rounded-full">
+            Policy #{policyId}
+          </span>
+          <span className={`ml-2 inline-block text-xs font-semibold px-3 py-1 rounded-full ${policyData[3]
+            ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+            : 'bg-red-500/20 text-red-400 border border-red-500/30'
+            }`}>
+            {policyData[3] ? 'Active' : 'Inactive'}
+          </span>
+        </div>
+        <p className="text-xs text-slate-500">
+          {formatDate(policyData[4])}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <p className="text-xs text-slate-400 mb-1">Policy Holder</p>
+          <p className="text-sm font-mono text-slate-200 break-all">
+            {policyData[0].slice(0, 6)}...{policyData[0].slice(-4)}
+          </p>
+          {isUserPolicy && (
+            <span className="text-xs text-emerald-400 font-semibold">Your Policy</span>
+          )}
+        </div>
+
+        <div>
+          <p className="text-xs text-slate-400 mb-1">Premium Paid</p>
+          <p className="text-lg font-bold text-emerald-400">
+            {formatEth(policyData[1])} ETH
+          </p>
+        </div>
+
+        <div>
+          <p className="text-xs text-slate-400 mb-1">Coverage Amount</p>
+          <p className="text-lg font-bold text-blue-400">
+            {formatEth(policyData[2])} ETH
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function Home() {
+  const account = useActiveAccount()
+  const [currentPage, setCurrentPage] = useState(1)
+
+  // Read total policies
+  const { data: totalPolicies, isLoading: loadingTotal } = useReadContract({
+    contract,
+    method: "function getTotalPolicies() view returns (uint256)",
+    params: [],
+  })
+
+  const policyIds = useMemo(() => {
+    if (!totalPolicies) return []
+    const total = Number(totalPolicies)
+    const allIds = Array.from({ length: total }, (_, i) => total - i)
+    return allIds
+  }, [totalPolicies])
+
+  const totalPages = Math.ceil(policyIds.length / POLICIES_PER_PAGE)
+  const startIndex = (currentPage - 1) * POLICIES_PER_PAGE
+  const endIndex = startIndex + POLICIES_PER_PAGE
+  const currentPolicyIds = policyIds.slice(startIndex, endIndex)
+
+  const goToPage = (page: number) => {
+    setCurrentPage(page)
+  }
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-950 text-slate-50">
       {/* Header */}
@@ -39,7 +154,7 @@ export default function Home() {
       <section className="container max-w-screen-xl mx-auto px-4 py-20 md:py-32">
         <div className="grid md:grid-cols-2 gap-12 items-center">
           {/* Left Content */}
-          <div className="flex flex-col gap-8">
+          <div className="flex flex-col gap-8 mb-28">
             <div>
               <h1 className="text-4xl md:text-6xl font-bold tracking-tighter mb-6 leading-tight text-balance">
                 Build web3 experiences
@@ -76,21 +191,7 @@ export default function Home() {
               </a>
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-4 pt-8 border-t border-slate-800/50">
-              <div>
-                <p className="text-2xl md:text-3xl font-bold text-emerald-400">100K+</p>
-                <p className="text-sm text-slate-400">Developers</p>
-              </div>
-              <div>
-                <p className="text-2xl md:text-3xl font-bold text-emerald-400">50+</p>
-                <p className="text-sm text-slate-400">Chains</p>
-              </div>
-              <div>
-                <p className="text-2xl md:text-3xl font-bold text-emerald-400">$10M+</p>
-                <p className="text-sm text-slate-400">In volume</p>
-              </div>
-            </div>
+
           </div>
 
           {/* Right Visual */}
@@ -114,30 +215,73 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Resources Section */}
-      <section id="resources" className="container max-w-screen-xl mx-auto px-4 py-20 border-t border-slate-800/30">
-        <h2 className="text-3xl md:text-4xl font-bold mb-4">Get Started</h2>
-        <p className="text-slate-300 mb-12 text-lg">
-          Read the README.md file and explore our comprehensive documentation.
-        </p>
-
-        <div className="grid gap-6 md:grid-cols-3">
-          <ArticleCard
-            title="thirdweb SDK Docs"
-            href="https://portal.thirdweb.com/typescript/v5"
-            description="Complete TypeScript SDK documentation with examples and best practices"
-          />
-          <ArticleCard
-            title="React Components"
-            href="https://portal.thirdweb.com/typescript/v5/react"
-            description="Pre-built React components and hooks for common web3 interactions"
-          />
-          <ArticleCard
-            title="Dashboard"
-            href="https://thirdweb.com/dashboard"
-            description="Deploy and manage your smart contracts from the dashboard"
-          />
+      {/* Policies Section */}
+      <section className="container max-w-screen-xl mx-auto px-4 py-20 border-t border-slate-800/30">
+        <div className="mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">Active Policies</h2>
+          <p className="text-slate-300 text-lg">
+            View all insurance policies on the blockchain
+          </p>
         </div>
+
+        {loadingTotal ? (
+          <div className="text-center py-8">
+            <p className="text-slate-400">Loading policies...</p>
+          </div>
+        ) : policyIds.length === 0 ? (
+          <div className="text-center py-8 bg-slate-800/30 rounded-2xl border border-slate-700/50">
+            <p className="text-slate-400">No policies created yet. Be the first to create one!</p>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-4 mb-8">
+              {currentPolicyIds.map((policyId) => (
+                <PolicyCard key={policyId} policyId={policyId} account={account} />
+              ))}
+            </div>
+
+            {totalPages > 1 && (
+              <>
+                <div className="flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-4 py-2 bg-slate-800/50 text-slate-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-700/50 border border-slate-700/50 transition"
+                  >
+                    Previous
+                  </button>
+
+                  <div className="flex gap-2">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <button
+                        key={page}
+                        onClick={() => goToPage(page)}
+                        className={`px-4 py-2 rounded-lg transition ${currentPage === page
+                          ? 'bg-emerald-500 text-slate-900 font-semibold'
+                          : 'bg-slate-800/50 text-slate-300 hover:bg-slate-700/50 border border-slate-700/50'
+                          }`}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="px-4 py-2 bg-slate-800/50 text-slate-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-700/50 border border-slate-700/50 transition"
+                  >
+                    Next
+                  </button>
+                </div>
+
+                <div className="mt-4 text-center text-sm text-slate-400">
+                  Showing {startIndex + 1} - {Math.min(endIndex, policyIds.length)} of {policyIds.length} policies
+                </div>
+              </>
+            )}
+          </>
+        )}
       </section>
 
       {/* Footer */}

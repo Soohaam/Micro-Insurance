@@ -2,15 +2,27 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useAppSelector } from '@/store/hooks';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, ArrowLeft, Shield, MapPin, Calendar, Activity, CheckCircle, Wallet, Copy } from 'lucide-react';
 import axios from 'axios';
-import { useActiveAccount, ConnectButton } from "thirdweb/react";
+import { useActiveAccount, ConnectButton, useSendTransaction, useWalletBalance } from "thirdweb/react";
 import { client } from "@/app/client";
 import { toast } from 'sonner';
+import { getContract, prepareContractCall, toWei } from "thirdweb";
+import { sepolia } from "thirdweb/chains";
+
+// Your deployed contract address
+const CONTRACT_ADDRESS = "0xae39f8734faee1f4514c1a5203d0a0eaef1dd069";
+
+const contract = getContract({
+  client,
+  chain: sepolia,
+  address: CONTRACT_ADDRESS,
+});
 
 interface Product {
   productId: string;
@@ -21,7 +33,7 @@ interface Product {
     companyName: string;
     companyEmail: string;
   };
-  companyWalletAddress?: string; // ← Now coming directly from Product
+  companyWalletAddress?: string;
   policyType: string;
   coverageType: string;
   baseRate: number;
@@ -41,7 +53,17 @@ interface Product {
 export default function PurchaseProduct() {
   const params = useParams();
   const router = useRouter();
+  const { token, user } = useAppSelector((state) => state.auth);
   const account = useActiveAccount();
+  const { mutate: sendTransaction, isPending: isTransactionPending } = useSendTransaction();
+
+  // Get wallet balance with auto-refresh
+  const { data: balanceData, isLoading: isBalanceLoading, refetch: refetchBalance } = useWalletBalance({
+    client,
+    chain: sepolia,
+    address: account?.address,
+  });
+
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
   const [product, setProduct] = useState<Product | null>(null);
@@ -51,6 +73,13 @@ export default function PurchaseProduct() {
       fetchProduct(params.id as string);
     }
   }, [params.id]);
+
+  // Refetch balance when account changes
+  useEffect(() => {
+    if (account?.address) {
+      refetchBalance();
+    }
+  }, [account?.address, refetchBalance]);
 
   const fetchProduct = async (id: string) => {
     try {
@@ -77,11 +106,62 @@ export default function PurchaseProduct() {
     }
     if (!product) return;
 
+    const PREMIUM_AMOUNT = "0.001"; // 0.001 ETH
+    const COVERAGE_AMOUNT = "1";     // 1 unit
+
     try {
       setPurchasing(true);
-      toast.success('Purchase functionality coming soon!');
+
+      const transaction = prepareContractCall({
+        contract,
+        method: "function createPolicy(uint256 _coverageAmount) payable",
+        params: [toWei(COVERAGE_AMOUNT)],
+        value: toWei(PREMIUM_AMOUNT),
+      });
+
+      sendTransaction(transaction, {
+        onSuccess: async (result) => {
+          toast.success("Policy purchased successfully!");
+          console.log("Transaction hash:", result.transactionHash);
+
+          // Refetch balance immediately after successful transaction
+          setTimeout(() => {
+            refetchBalance();
+          }, 2000); // Small delay to ensure blockchain update
+
+          try {
+            await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/purchases`, {
+              productId: product.productId,
+              productName: product.productName,
+              companyId: product.company.companyId,
+              // userId handled by backend via token
+              userWalletAddress: account.address,
+              companyWalletAddress: product.companyWalletAddress,
+              transactionHash: result.transactionHash,
+              cost: PREMIUM_AMOUNT,
+              duration: product.duration,
+              coverageAmount: COVERAGE_AMOUNT,
+              policyType: product.policyType
+            }, {
+              headers: {
+                Authorization: `Bearer ${token}`
+              }
+            });
+            console.log("Purchase recorded in DB");
+          } catch (apiError) {
+            console.error("Failed to record purchase in DB", apiError);
+            toast.error("Purchase on chain successful, but failed to save record.");
+          }
+        },
+        onError: (error) => {
+          console.error("Transaction failed:", error);
+          toast.error("Transaction failed. Please try again.");
+        },
+      });
+
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Purchase failed');
+      console.error("Purchase error:", error);
+      toast.error(error.message || "Purchase failed");
     } finally {
       setPurchasing(false);
     }
@@ -94,6 +174,12 @@ export default function PurchaseProduct() {
       </div>
     );
   }
+
+  // Format balance for display
+  const formatBalance = (balance: bigint | undefined) => {
+    if (!balance) return "0.0000";
+    return (Number(balance) / 1e18).toFixed(4);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950">
@@ -112,7 +198,25 @@ export default function PurchaseProduct() {
               <span className="text-xl font-bold text-white">Purchase Insurance</span>
             </div>
           </div>
-          <ConnectButton client={client} appMetadata={{ name: "Micro Insurance Platform", url: "https://yourdomain.com" }} />
+          <div className="flex items-center gap-4">
+            {/* Wallet Balance Display */}
+            {account?.address && (
+              <div className="hidden md:flex items-center gap-2 bg-slate-800/50 border border-slate-700 px-4 py-2 rounded-lg">
+                <Wallet className="h-4 w-4 text-emerald-400" />
+                <div className="flex flex-col">
+                  <span className="text-xs text-slate-400">Balance</span>
+                  <span className="text-sm font-semibold text-emerald-400">
+                    {isBalanceLoading ? (
+                      <Loader2 className="h-3 w-3 animate-spin inline" />
+                    ) : (
+                      `${formatBalance(balanceData?.value)} ETH`
+                    )}
+                  </span>
+                </div>
+              </div>
+            )}
+            <ConnectButton client={client} appMetadata={{ name: "Micro Insurance Platform", url: "https://yourdomain.com" }} />
+          </div>
         </div>
       </header>
 
@@ -166,7 +270,7 @@ export default function PurchaseProduct() {
                       </Button>
                     </div>
                     <p className="text-xs text-slate-400 mt-2">
-                      Claims will be paid to your wallet from this wallet address automatically via smart contract
+                      Claims will be paid to your wallet from this address automatically
                     </p>
                   </div>
                 )}
@@ -215,7 +319,7 @@ export default function PurchaseProduct() {
                       Sum Insured Range
                     </h4>
                     <p className="text-lg font-medium text-slate-200">
-                      {product.sumInsuredMin.toLocaleString()} - {product.sumInsuredMax.toLocaleString()} INR
+                      {product.sumInsuredMin.toLocaleString()} - {product.sumInsuredMax.toLocaleString()} ETH
                     </p>
                   </div>
                 </div>
@@ -241,32 +345,39 @@ export default function PurchaseProduct() {
                     <span className="font-medium text-white">{product.company.companyName}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Coverage Period</span>
-                    <span className="font-medium text-white">{product.duration} Days</span>
+                    <span className="text-slate-400">Premium</span>
+                    <span className="font-medium text-emerald-400">0.001 ETH</span>
                   </div>
                 </div>
 
                 <Separator className="bg-slate-700" />
 
-                <div className="flex justify-between items-end">
-                  <span className="font-semibold text-white">Total Cost</span>
-                  <span className="text-3xl font-bold text-emerald-400">
-                    {product.cost ? `${product.cost} ETH` : 'Calculated on purchase'}
-                  </span>
-                </div>
-
-                <Separator className="bg-slate-700" />
-
-                {/* User's Wallet */}
+                {/* User's Wallet with Balance */}
                 {account?.address ? (
-                  <div className="bg-emerald-500/10 border border-emerald-500/30 p-4 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <CheckCircle className="h-6 w-6 text-emerald-400 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-emerald-400 text-sm">Your Wallet</h4>
-                        <p className="text-xs font-mono text-emerald-300 truncate">
-                          {account.address}
-                        </p>
+                  <div className="space-y-3">
+                    <div className="bg-emerald-500/10 border border-emerald-500/30 p-4 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <CheckCircle className="h-6 w-6 text-emerald-400 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-emerald-400 text-sm">Your Wallet</h4>
+                          <p className="text-xs font-mono text-emerald-300 truncate">
+                            {account.address}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Balance Display in Summary */}
+                    <div className="bg-slate-800/50 border border-slate-700 p-4 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-slate-400">Current Balance</span>
+                        <span className="text-lg font-bold text-emerald-400">
+                          {isBalanceLoading ? (
+                            <Loader2 className="h-4 w-4 animate-spin inline" />
+                          ) : (
+                            `${formatBalance(balanceData?.value)} ETH`
+                          )}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -281,17 +392,17 @@ export default function PurchaseProduct() {
               <CardFooter>
                 <Button
                   onClick={handlePurchase}
-                  disabled={!account?.address || purchasing}
+                  disabled={!account?.address || purchasing || isTransactionPending}
                   className="w-full h-12 text-lg bg-emerald-600 hover:bg-emerald-700"
                   size="lg"
                 >
-                  {purchasing ? (
+                  {purchasing || isTransactionPending ? (
                     <>
                       <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Processing...
+                      Processing Transaction...
                     </>
                   ) : (
-                    'Confirm Purchase'
+                    'Confirm & Pay 0.001 ETH'
                   )}
                 </Button>
               </CardFooter>

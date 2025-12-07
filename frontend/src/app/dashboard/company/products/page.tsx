@@ -36,6 +36,8 @@ interface Product {
   sumInsuredMin: number;
   sumInsuredMax: number;
   status: 'pending' | 'approved' | 'rejected' | 'active' | 'inactive';
+  isActive: boolean;
+  approvalStatus: 'pending' | 'approved' | 'rejected';
   createdAt: string;
 }
 
@@ -57,7 +59,18 @@ export default function ManageProducts() {
       const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/company/products`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setProducts(response.data.products || []);
+
+      const mappedProducts = (response.data.products || []).map((p: any) => {
+        let status = p.approvalStatus; // pending, approved, rejected
+        if (!p.isActive) {
+          status = 'inactive';
+        } else if (p.approvalStatus === 'approved') {
+          status = 'active';
+        }
+        return { ...p, status };
+      });
+
+      setProducts(mappedProducts);
     } catch (error: any) {
       console.error('Error fetching products:', error);
       toast.error('Failed to load products');

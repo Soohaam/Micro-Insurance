@@ -19,6 +19,7 @@ const adminRoutes = require("./routes/adminRoutes");
 const kycRoutes = require("./routes/kycRoutes");
 const companyRoutes = require("./routes/companyRoutes");
 const userRoutes = require("./routes/userRoutes");
+const purchasedProductRoutes = require("./routes/purchasedProductRoutes");
 
 // Routes
 app.use("/api/auth", authRoutes);
@@ -26,10 +27,11 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/kyc", kycRoutes);
 app.use("/api/company", companyRoutes);
 app.use("/api/user", userRoutes);
+app.use("/api/purchases", purchasedProductRoutes);
 
 // Root URL
 app.get("/", (req, res) => {
-  res.json({ 
+  res.json({
     message: "Micro Insurance Platform API 🚀",
     version: "1.0.0",
     endpoints: {
@@ -38,13 +40,14 @@ app.get("/", (req, res) => {
       kyc: "/api/kyc",
       company: "/api/company",
       user: "/api/user",
+      purchases: "/api/purchases"
     }
   });
 });
 
 // Health check endpoint
 app.get("/health", (req, res) => {
-  res.json({ 
+  res.json({
     status: "OK",
     timestamp: new Date().toISOString(),
     database: db.sequelize ? "Connected" : "Disconnected"

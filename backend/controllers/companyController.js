@@ -3,6 +3,7 @@ const db = require("../models");
 const Company = db.Company;
 const Product = db.Product;
 const Policy = db.Policy;
+const PurchasedProduct = db.PurchasedProduct;
 
 /**
  * Upload company documents (license, compliance certificates)
@@ -220,39 +221,55 @@ exports.getDashboardStats = async (req, res) => {
 
         const company = await Company.findByPk(companyId);
 
-        // Get product count
-        const productsActive = await Product.count({
-            where: { companyId, isActive: true },
-        });
-
-        // Get policy statistics
-        const totalPoliciesSold = await Policy.count({
+        // Get total product count
+        const totalProducts = await Product.count({
             where: { companyId },
         });
 
-        const activePolicies = await Policy.count({
-            where: { companyId, status: 'active' },
-        });
-
-        // Get financial metrics
-        const policies = await Policy.findAll({
+        // Get purchase statistics from PurchasedProduct
+        const purchases = await PurchasedProduct.findAll({
             where: { companyId },
-            attributes: ['premiumAmount', 'sumInsured', 'claimStatus'],
+            attributes: ['cost', 'coverageAmount', 'purchaseDate', 'duration', 'policyType']
         });
 
-        const totalPremiumsCollected = policies.reduce((sum, p) => sum + parseFloat(p.premiumAmount || 0), 0);
-        const riskExposure = policies.filter(p => p.status === 'active').reduce((sum, p) => sum + parseFloat(p.sumInsured || 0), 0);
+        // Calculate active policies and financial metrics
+        let activePolicies = 0;
+        let totalPremiumsCollected = 0;
+        let riskExposure = 0;
+
+        const now = new Date();
+
+        purchases.forEach(p => {
+            // Money metrics
+            totalPremiumsCollected += parseFloat(p.cost || 0);
+
+            // Active status calculation
+            const purchaseDate = new Date(p.purchaseDate);
+            const durationDays = p.duration || 365;
+            const endDate = new Date(purchaseDate);
+            endDate.setDate(endDate.getDate() + durationDays);
+
+            if (endDate > now) {
+                activePolicies++;
+                riskExposure += parseFloat(p.coverageAmount || 0);
+            }
+        });
+
+        console.log(`Debug Stats for Company ${companyId}: Products=${totalProducts}, Purchases=${purchases.length}`);
 
         res.json({
-            totalPoliciesSold,
-            activePolicies,
-            totalPremiumsCollected: totalPremiumsCollected.toFixed(2),
-            totalPayoutsMade: company.totalPayoutsMade,
-            poolBalance: company.poolBalance,
-            riskExposure: riskExposure.toFixed(2),
-            productsActive,
+            stats: {
+                totalProducts,
+                activePolicies,
+                totalPremiums: totalPremiumsCollected, // Send as number
+                totalPayouts: company.totalPayoutsMade || 0,
+                poolBalance: company.poolBalance || 0,
+                riskExposure: riskExposure // Send as number
+            },
+            companyStatus: company.status
         });
     } catch (error) {
+        console.error("Error fetching dashboard stats:", error);
         res.status(500).json({
             message: "Error fetching dashboard stats",
             error: error.message
@@ -269,13 +286,15 @@ exports.getCompanyPolicies = async (req, res) => {
         const { status, page = 1, limit = 20 } = req.query;
 
         const where = { companyId };
-        if (status) {
-            where.status = status;
-        }
+        // Status filtering would technically need post-processing if not stored in DB,
+        // but for pagination efficiency, we might just return sorted by date and filter on frontend or ignore status 
+        // if user asks for specific status we might need to fetch all and filter or add a column.
+        // For now, let's ignore status filter in the DB query for PurchasedProduct as we don't have a simple column,
+        // or we rely on frontend filtering if total count isn't massive.
 
         const offset = (page - 1) * limit;
 
-        const { count, rows: policies } = await Policy.findAndCountAll({
+        const { count, rows: purchases } = await PurchasedProduct.findAndCountAll({
             where,
             include: [
                 {
@@ -294,6 +313,38 @@ exports.getCompanyPolicies = async (req, res) => {
             order: [['createdAt', 'DESC']],
         });
 
+        // Remap to match frontend Policy interface expectation where possible
+        const policies = purchases.map(p => {
+            const purchaseDate = new Date(p.purchaseDate);
+            const durationDays = p.duration || 365;
+            const endDate = new Date(purchaseDate);
+            endDate.setDate(endDate.getDate() + durationDays);
+
+            const now = new Date();
+            let currentStatus = 'active';
+            if (endDate < now) {
+                currentStatus = 'expired';
+            }
+
+            return {
+                _id: p.purchaseId,
+                policyNumber: p.purchaseId.substring(0, 8).toUpperCase(),
+                product: p.product ? {
+                    productName: p.product.productName
+                } : { productName: p.productName || 'Unknown' },
+                user: p.user ? {
+                    name: p.user.fullName,
+                    email: p.user.email
+                } : { name: 'Unknown', email: 'N/A' },
+                sumInsured: parseFloat(p.coverageAmount || 0),
+                premiumPaid: parseFloat(p.cost || 0),
+                startDate: p.purchaseDate,
+                endDate: endDate,
+                status: currentStatus, // calculated status
+                duration: p.duration
+            };
+        });
+
         res.json({
             total: count,
             page: parseInt(page),
@@ -302,6 +353,7 @@ exports.getCompanyPolicies = async (req, res) => {
             policies,
         });
     } catch (error) {
+        console.error("Error fetching policies:", error);
         res.status(500).json({
             message: "Error fetching policies",
             error: error.message
