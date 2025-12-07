@@ -19,11 +19,11 @@ import { Loader2, Search, Filter, ShieldCheck, MapPin } from 'lucide-react';
 import axios from 'axios';
 
 interface Product {
-  _id: string;
+  productId: string;
   productName: string;
   description: string;
   company: {
-    name: string;
+    companyName: string;
   };
   policyType: string;
   coverageType: string;
@@ -31,6 +31,7 @@ interface Product {
   sumInsuredMin: number;
   sumInsuredMax: number;
   regionsCovered: string[];
+  companyWalletAddress?: string;
 }
 
 export default function BrowseProducts() {
@@ -51,7 +52,7 @@ export default function BrowseProducts() {
       const params = new URLSearchParams();
       if (policyType !== 'all') params.append('policyType', policyType);
       if (coverageType !== 'all') params.append('coverageType', coverageType);
-      
+
       const response = await axios.get(
         `${process.env.NEXT_PUBLIC_API_URL}/user/products?${params.toString()}`
       );
@@ -68,9 +69,9 @@ export default function BrowseProducts() {
       product.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.company.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.regionsCovered.some((r) => r.toLowerCase().includes(searchQuery.toLowerCase()));
-    
+
     const matchesRate = product.baseRate >= priceRange[0] && product.baseRate <= priceRange[1];
-    
+
     return matchesSearch && matchesRate;
   });
 
@@ -83,12 +84,12 @@ export default function BrowseProducts() {
           <p className="text-xl opacity-90 mb-8 max-w-2xl mx-auto">
             Browse our parametric insurance products designed for instant payouts and complete peace of mind.
           </p>
-          
+
           <div className="flex flex-col md:flex-row gap-4 justify-center max-w-2xl mx-auto bg-white/10 p-4 rounded-xl backdrop-blur-sm">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-3 h-5 w-5 opacity-70" />
-              <Input 
-                placeholder="Search by name, company, or region..." 
+              <Input
+                placeholder="Search by name, company, or region..."
                 className="pl-10 bg-white text-gray-900 border-0 focus-visible:ring-0"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -110,7 +111,7 @@ export default function BrowseProducts() {
                 <Filter className="h-5 w-5" />
                 Filters
               </div>
-              
+
               <div className="space-y-2">
                 <Label>Policy Type</Label>
                 <Select value={policyType} onValueChange={setPolicyType}>
@@ -158,8 +159,8 @@ export default function BrowseProducts() {
                 </div>
               </div>
 
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full"
                 onClick={() => {
                   setPolicyType('all');
@@ -192,7 +193,7 @@ export default function BrowseProducts() {
             ) : (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {filteredProducts.map((product) => (
-                  <Card key={product._id} className="flex flex-col hover:shadow-lg transition-shadow duration-200">
+                  <Card key={product.productId} className="flex flex-col hover:shadow-lg transition-shadow duration-200">
                     <CardHeader>
                       <div className="flex justify-between items-start mb-2">
                         <Badge variant="secondary" className="capitalize">
@@ -205,14 +206,14 @@ export default function BrowseProducts() {
                       <CardTitle className="text-xl line-clamp-2">{product.productName}</CardTitle>
                       <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
                         <ShieldCheck className="h-3 w-3" />
-                        {product.company.name}
+                        {product.company.companyName}
                       </div>
                     </CardHeader>
                     <CardContent className="flex-1 space-y-4">
                       <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
                         {product.description}
                       </p>
-                      
+
                       <div className="space-y-2">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <MapPin className="h-4 w-4" />
@@ -226,7 +227,7 @@ export default function BrowseProducts() {
                     </CardContent>
                     <CardFooter>
                       <Button asChild className="w-full">
-                        <Link href={`/products/${product._id}`}>View Details</Link>
+                        <Link href={`/products/${product.productId}`}>View Details</Link>
                       </Button>
                     </CardFooter>
                   </Card>

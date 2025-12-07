@@ -13,10 +13,10 @@ import axios from 'axios';
 import { toast } from 'sonner';
 
 interface Product {
-  _id: string;
+  productId: string;
   productName: string;
   company: {
-    name: string;
+    companyName: string;
     walletAddress?: string; // Assuming company model has this, or use fallback
   };
   baseRate: number;
@@ -36,11 +36,11 @@ export default function PurchasePolicy() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user, token } = useAppSelector((state) => state.auth);
-  
+
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [product, setProduct] = useState<Product | null>(null);
-  
+
   // Form State
   const [sumInsured, setSumInsured] = useState<number>(0);
   const [premium, setPremium] = useState<number>(0);
@@ -50,7 +50,7 @@ export default function PurchasePolicy() {
     district: '',
   });
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
-  
+
   // Wallet State
   const [walletAddress, setWalletAddress] = useState<string>('');
   const [walletConnected, setWalletConnected] = useState(false);
@@ -61,7 +61,7 @@ export default function PurchasePolicy() {
       router.push(`/login?redirect=/products/${params.id}/purchase`);
       return;
     }
-    
+
     // Check KYC status - Assuming user object has kycStatus
     // Note: If you need to fetch fresh user data, do it here. 
     // For now relying on stored user state.
@@ -72,11 +72,11 @@ export default function PurchasePolicy() {
     }
 
     fetchProduct();
-    
+
     // Initialize Sum Insured from URL
     const initialSum = parseFloat(searchParams.get('sumInsured') || '0');
     if (initialSum > 0) setSumInsured(initialSum);
-    
+
     // Check if wallet is already connected
     checkWalletConnection();
   }, [user, params.id]);
@@ -182,7 +182,7 @@ export default function PurchasePolicy() {
 
       // 2. Submit to Backend
       const payload = {
-        productId: product?._id,
+        productId: product?.productId,
         sumInsured,
         startDate,
         location: {
@@ -237,12 +237,12 @@ export default function PurchasePolicy() {
               <CardDescription>Finalize details for your {product.productName}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              
+
               <div className="space-y-2">
                 <Label>Sum Insured (Cover Amount)</Label>
                 <div className="flex gap-4 items-center">
-                  <Input 
-                    type="number" 
+                  <Input
+                    type="number"
                     value={sumInsured}
                     onChange={(e) => setSumInsured(Number(e.target.value))}
                     min={product.sumInsuredMin}
@@ -256,8 +256,8 @@ export default function PurchasePolicy() {
 
               <div className="space-y-2">
                 <Label>Coverage Start Date</Label>
-                <Input 
-                  type="date" 
+                <Input
+                  type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
                   min={new Date().toISOString().split('T')[0]}
@@ -272,11 +272,11 @@ export default function PurchasePolicy() {
                     Use Current Location
                   </Button>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-xs">Latitude</Label>
-                    <Input 
+                    <Input
                       value={location.lat}
                       onChange={(e) => setLocation(prev => ({ ...prev, lat: e.target.value }))}
                       placeholder="e.g. 19.0760"
@@ -284,17 +284,17 @@ export default function PurchasePolicy() {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-xs">Longitude</Label>
-                    <Input 
+                    <Input
                       value={location.lng}
                       onChange={(e) => setLocation(prev => ({ ...prev, lng: e.target.value }))}
                       placeholder="e.g. 72.8777"
                     />
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label>District / Region</Label>
-                  <Input 
+                  <Input
                     value={location.district}
                     onChange={(e) => setLocation(prev => ({ ...prev, district: e.target.value }))}
                     placeholder="Enter your district"
@@ -348,9 +348,9 @@ export default function PurchasePolicy() {
                 <h4 className="font-semibold text-sm text-muted-foreground mb-1">Product</h4>
                 <p className="font-medium">{product.productName}</p>
               </div>
-              
+
               <Separator />
-              
+
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Sum Insured</span>
@@ -374,9 +374,9 @@ export default function PurchasePolicy() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button 
-                onClick={handlePurchase} 
-                disabled={!walletConnected || processing || premium <= 0} 
+              <Button
+                onClick={handlePurchase}
+                disabled={!walletConnected || processing || premium <= 0}
                 className="w-full h-12 text-lg"
               >
                 {processing ? (
@@ -390,7 +390,7 @@ export default function PurchasePolicy() {
               </Button>
             </CardFooter>
           </Card>
-          
+
           <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex gap-3">
             <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
             <p className="text-xs text-blue-800 dark:text-blue-200">

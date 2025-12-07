@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,14 +16,18 @@ import { Loader2 } from "lucide-react";
 import { useActiveAccount, ConnectButton } from "thirdweb/react";
 import { client } from "../client";
 
+// Fixed User Schema (removed duplicate walletAddress)
 const userSchema = z.object({
   fullName: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   phone: z.string().regex(/^\d{10}$/, "Phone must be 10 digits"),
-  walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum wallet address").optional().or(z.literal("")),
+  walletAddress: z
+    .string()
+    .regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum wallet address")
+    .optional()
+    .or(z.literal("")),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string(),
-  walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum wallet address").optional().or(z.literal("")),
   address: z.object({
     street: z.string().min(5, "Street address required"),
     city: z.string().min(2, "City required"),
@@ -36,12 +39,17 @@ const userSchema = z.object({
   path: ["confirmPassword"],
 });
 
+// Company Schema
 const companySchema = z.object({
   companyName: z.string().min(3, "Company name required"),
   companyEmail: z.string().email("Invalid email address"),
   companyPhone: z.string().regex(/^\d{10}$/, "Phone must be 10 digits"),
   registrationNumber: z.string().min(5, "Registration number required"),
-  walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum wallet address").optional().or(z.literal("")),
+  walletAddress: z
+    .string()
+    .regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum wallet address")
+    .optional()
+    .or(z.literal("")),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string(),
   address: z.object({
@@ -50,7 +58,7 @@ const companySchema = z.object({
     state: z.string().min(2, "State required"),
     pincode: z.string().regex(/^\d{6}$/, "Pincode must be 6 digits"),
   }),
-  documents: z.any().optional(), // File upload field
+  documents: z.any().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -72,13 +80,7 @@ export default function Register() {
       walletAddress: "",
       password: "",
       confirmPassword: "",
-      walletAddress: "",
-      address: {
-        street: "",
-        city: "",
-        state: "",
-        pincode: "",
-      },
+      address: { street: "", city: "", state: "", pincode: "" },
     },
   });
 
@@ -92,15 +94,11 @@ export default function Register() {
       walletAddress: "",
       password: "",
       confirmPassword: "",
-      address: {
-        street: "",
-        city: "",
-        state: "",
-        pincode: "",
-      },
+      address: { street: "", city: "", state: "", pincode: "" },
     },
   });
 
+  // Show error toast
   useEffect(() => {
     if (error) {
       toast.error(error);
@@ -108,20 +106,24 @@ export default function Register() {
     }
   }, [error, dispatch]);
 
-  // Auto-fill wallet address when connected
+  // Auto-fill wallet address in BOTH forms when wallet connects
   useEffect(() => {
-    console.log("Wallet detection effect triggered:", account);
     if (account?.address) {
-      console.log("Setting wallet address:", account.address);
-      userForm.setValue("walletAddress", account.address);
-      toast.success(`Wallet connected: ${account.address.slice(0, 6)}...${account.address.slice(-4)}`);
+      const walletAddr = account.address;
+
+      // Auto-fill for both forms
+      userForm.setValue("walletAddress", walletAddr, { shouldValidate: true });
+      companyForm.setValue("walletAddress", walletAddr, { shouldValidate: true });
+
+      toast.success(
+        `Wallet connected: ${walletAddr.slice(0, 6)}...${walletAddr.slice(-4)}`
+      );
     }
-  }, [account, userForm]);
+  }, [account?.address, userForm, companyForm]);
 
   const onUserSubmit = async (data: any) => {
     const { confirmPassword, ...userData } = data;
     const result = await dispatch(registerUser(userData));
-
     if (result.meta.requestStatus === "fulfilled") {
       toast.success("Registration successful! Please complete KYC verification.");
       router.push("/kyc");
@@ -131,12 +133,13 @@ export default function Register() {
   const onCompanySubmit = async (data: any) => {
     const { confirmPassword, ...companyData } = data;
     const result = await dispatch(registerCompany(companyData));
-
     if (result.meta.requestStatus === "fulfilled") {
       toast.success("Company registered! Please login and upload documents for approval.");
       router.push("/login");
     }
   };
+
+  const isWalletConnected = !!account?.address;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4">
@@ -148,7 +151,7 @@ export default function Register() {
           <CardDescription className="text-center text-slate-400">
             Register as a user or insurance company
           </CardDescription>
-          <div className="flex justify-center mt-4">
+          <div className="flex justify-center mt-6">
             <ConnectButton
               client={client}
               appMetadata={{
@@ -158,6 +161,7 @@ export default function Register() {
             />
           </div>
         </CardHeader>
+
         <CardContent>
           <Tabs value={tab} onValueChange={setTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-8">
@@ -169,19 +173,18 @@ export default function Register() {
               </TabsTrigger>
             </TabsList>
 
-            {/* Wallet Connection Status */}
-            {account?.address && (
-              <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                <p className="text-sm text-emerald-400">
-                  Wallet Connected: {account.address.slice(0, 6)}...{account.address.slice(-4)}
+            {/* Wallet Connected Indicator */}
+            {isWalletConnected && (
+              <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-center">
+                <p className="text-emerald-400 font-medium">
+                  Wallet Connected: {account.address.slice(0, 8)}...{account.address.slice(-6)}
                 </p>
               </div>
             )}
 
             {/* USER REGISTRATION */}
             <TabsContent value="user">
-              <form onSubmit={userForm.handleSubmit(onUserSubmit)} className="space-y-4">
+              <form onSubmit={userForm.handleSubmit(onUserSubmit)} className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="fullName">Full Name *</Label>
@@ -192,9 +195,7 @@ export default function Register() {
                       {...userForm.register("fullName")}
                     />
                     {userForm.formState.errors.fullName && (
-                      <p className="text-red-400 text-xs mt-1">
-                        {userForm.formState.errors.fullName.message}
-                      </p>
+                      <p className="text-red-400 text-xs mt-1">{userForm.formState.errors.fullName.message}</p>
                     )}
                   </div>
 
@@ -208,9 +209,7 @@ export default function Register() {
                       {...userForm.register("email")}
                     />
                     {userForm.formState.errors.email && (
-                      <p className="text-red-400 text-xs mt-1">
-                        {userForm.formState.errors.email.message}
-                      </p>
+                      <p className="text-red-400 text-xs mt-1">{userForm.formState.errors.email.message}</p>
                     )}
                   </div>
 
@@ -223,32 +222,28 @@ export default function Register() {
                       {...userForm.register("phone")}
                     />
                     {userForm.formState.errors.phone && (
-                      <p className="text-red-400 text-xs mt-1">
-                        {userForm.formState.errors.phone.message}
-                      </p>
+                      <p className="text-red-400 text-xs mt-1">{userForm.formState.errors.phone.message}</p>
                     )}
                   </div>
 
                   <div>
-                    <Label htmlFor="walletAddress">Wallet Address (Optional)</Label>
+                    <Label htmlFor="user-wallet">Wallet Address {isWalletConnected ? "" : "(Optional)"}</Label>
                     <Input
-                      id="walletAddress"
-                      placeholder="0x..."
-                      className="bg-slate-800/50 border-slate-700"
+                      id="user-wallet"
+                      placeholder={isWalletConnected ? account.address : "0x..."}
+                      className="bg-slate-800/50 border-slate-700 font-mono text-sm"
+                      disabled={isWalletConnected}
                       {...userForm.register("walletAddress")}
                     />
-                    {userForm.formState.errors.walletAddress && (
-                      <p className="text-red-400 text-xs mt-1">
-                        {userForm.formState.errors.walletAddress.message}
-                      </p>
+                    {isWalletConnected && (
+                      <p className="text-emerald-400 text-xs mt-1">Auto-filled from connected wallet</p>
                     )}
-                    {account?.address && (
-                      <p className="text-emerald-400 text-xs mt-1">
-                        ✓ Auto-filled from connected wallet
-                      </p>
+                    {userForm.formState.errors.walletAddress && !isWalletConnected && (
+                      <p className="text-red-400 text-xs mt-1">{userForm.formState.errors.walletAddress.message}</p>
                     )}
                   </div>
 
+                  {/* Address Fields */}
                   <div>
                     <Label htmlFor="street">Street Address *</Label>
                     <Input
@@ -258,9 +253,7 @@ export default function Register() {
                       {...userForm.register("address.street")}
                     />
                     {userForm.formState.errors.address?.street && (
-                      <p className="text-red-400 text-xs mt-1">
-                        {userForm.formState.errors.address.street.message}
-                      </p>
+                      <p className="text-red-400 text-xs mt-1">{userForm.formState.errors.address.street.message}</p>
                     )}
                   </div>
 
@@ -273,9 +266,7 @@ export default function Register() {
                       {...userForm.register("address.city")}
                     />
                     {userForm.formState.errors.address?.city && (
-                      <p className="text-red-400 text-xs mt-1">
-                        {userForm.formState.errors.address.city.message}
-                      </p>
+                      <p className="text-red-400 text-xs mt-1">{userForm.formState.errors.address.city.message}</p>
                     )}
                   </div>
 
@@ -288,9 +279,7 @@ export default function Register() {
                       {...userForm.register("address.state")}
                     />
                     {userForm.formState.errors.address?.state && (
-                      <p className="text-red-400 text-xs mt-1">
-                        {userForm.formState.errors.address.state.message}
-                      </p>
+                      <p className="text-red-400 text-xs mt-1">{userForm.formState.errors.address.state.message}</p>
                     )}
                   </div>
 
@@ -303,9 +292,7 @@ export default function Register() {
                       {...userForm.register("address.pincode")}
                     />
                     {userForm.formState.errors.address?.pincode && (
-                      <p className="text-red-400 text-xs mt-1">
-                        {userForm.formState.errors.address.pincode.message}
-                      </p>
+                      <p className="text-red-400 text-xs mt-1">{userForm.formState.errors.address.pincode.message}</p>
                     )}
                   </div>
 
@@ -319,9 +306,7 @@ export default function Register() {
                       {...userForm.register("password")}
                     />
                     {userForm.formState.errors.password && (
-                      <p className="text-red-400 text-xs mt-1">
-                        {userForm.formState.errors.password.message}
-                      </p>
+                      <p className="text-red-400 text-xs mt-1">{userForm.formState.errors.password.message}</p>
                     )}
                   </div>
 
@@ -335,21 +320,19 @@ export default function Register() {
                       {...userForm.register("confirmPassword")}
                     />
                     {userForm.formState.errors.confirmPassword && (
-                      <p className="text-red-400 text-xs mt-1">
-                        {userForm.formState.errors.confirmPassword.message}
-                      </p>
+                      <p className="text-red-400 text-xs mt-1">{userForm.formState.errors.confirmPassword.message}</p>
                     )}
                   </div>
                 </div>
 
                 <Button
                   type="submit"
-                  className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold"
+                  className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-6 text-lg"
                   disabled={loading}
                 >
                   {loading ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                       Registering...
                     </>
                   ) : (
@@ -361,7 +344,7 @@ export default function Register() {
 
             {/* COMPANY REGISTRATION */}
             <TabsContent value="company">
-              <form onSubmit={companyForm.handleSubmit(onCompanySubmit)} className="space-y-4">
+              <form onSubmit={companyForm.handleSubmit(onCompanySubmit)} className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="companyName">Company Name *</Label>
@@ -372,9 +355,7 @@ export default function Register() {
                       {...companyForm.register("companyName")}
                     />
                     {companyForm.formState.errors.companyName && (
-                      <p className="text-red-400 text-xs mt-1">
-                        {companyForm.formState.errors.companyName.message}
-                      </p>
+                      <p className="text-red-400 text-xs mt-1">{companyForm.formState.errors.companyName.message}</p>
                     )}
                   </div>
 
@@ -388,14 +369,12 @@ export default function Register() {
                       {...companyForm.register("companyEmail")}
                     />
                     {companyForm.formState.errors.companyEmail && (
-                      <p className="text-red-400 text-xs mt-1">
-                        {companyForm.formState.errors.companyEmail.message}
-                      </p>
+                      <p className="text-red-400 text-xs mt-1">{companyForm.formState.errors.companyEmail.message}</p>
                     )}
                   </div>
 
                   <div>
-                    <Label htmlFor="companyPhone">Phone *</Label>
+                    <Label htmlFor="companyPhone">Company Phone *</Label>
                     <Input
                       id="companyPhone"
                       placeholder="1234567890"
@@ -403,9 +382,7 @@ export default function Register() {
                       {...companyForm.register("companyPhone")}
                     />
                     {companyForm.formState.errors.companyPhone && (
-                      <p className="text-red-400 text-xs mt-1">
-                        {companyForm.formState.errors.companyPhone.message}
-                      </p>
+                      <p className="text-red-400 text-xs mt-1">{companyForm.formState.errors.companyPhone.message}</p>
                     )}
                   </div>
 
@@ -418,84 +395,77 @@ export default function Register() {
                       {...companyForm.register("registrationNumber")}
                     />
                     {companyForm.formState.errors.registrationNumber && (
-                      <p className="text-red-400 text-xs mt-1">
-                        {companyForm.formState.errors.registrationNumber.message}
-                      </p>
+                      <p className="text-red-400 text-xs mt-1">{companyForm.formState.errors.registrationNumber.message}</p>
                     )}
                   </div>
 
                   <div>
-                    <Label htmlFor="walletAddress">Wallet Address (Optional)</Label>
+                    <Label htmlFor="company-wallet">Wallet Address {isWalletConnected ? "" : "(Optional)"}</Label>
                     <Input
-                      id="walletAddress"
-                      placeholder="0x..."
-                      className="bg-slate-800/50 border-slate-700"
+                      id="company-wallet"
+                      placeholder={isWalletConnected ? account.address : "0x..."}
+                      className="bg-slate-800/50 border-slate-700 font-mono text-sm"
+                      disabled={isWalletConnected}
                       {...companyForm.register("walletAddress")}
                     />
-                    {companyForm.formState.errors.walletAddress && (
-                      <p className="text-red-400 text-xs mt-1">
-                        {companyForm.formState.errors.walletAddress.message}
-                      </p>
+                    {isWalletConnected && (
+                      <p className="text-emerald-400 text-xs mt-1">Auto-filled from connected wallet</p>
+                    )}
+                    {companyForm.formState.errors.walletAddress && !isWalletConnected && (
+                      <p className="text-red-400 text-xs mt-1">{companyForm.formState.errors.walletAddress.message}</p>
                     )}
                   </div>
 
+                  {/* Company Address */}
                   <div>
-                    <Label htmlFor="companyStreet">Street Address *</Label>
+                    <Label htmlFor="company-street">Street Address *</Label>
                     <Input
-                      id="companyStreet"
+                      id="company-street"
                       placeholder="456 Business Park"
                       className="bg-slate-800/50 border-slate-700"
                       {...companyForm.register("address.street")}
                     />
                     {companyForm.formState.errors.address?.street && (
-                      <p className="text-red-400 text-xs mt-1">
-                        {companyForm.formState.errors.address.street.message}
-                      </p>
+                      <p className="text-red-400 text-xs mt-1">{companyForm.formState.errors.address.street.message}</p>
                     )}
                   </div>
 
                   <div>
-                    <Label htmlFor="companyCity">City *</Label>
+                    <Label htmlFor="company-city">City *</Label>
                     <Input
-                      id="companyCity"
+                      id="company-city"
                       placeholder="Delhi"
                       className="bg-slate-800/50 border-slate-700"
                       {...companyForm.register("address.city")}
                     />
                     {companyForm.formState.errors.address?.city && (
-                      <p className="text-red-400 text-xs mt-1">
-                        {companyForm.formState.errors.address.city.message}
-                      </p>
+                      <p className="text-red-400 text-xs mt-1">{companyForm.formState.errors.address.city.message}</p>
                     )}
                   </div>
 
                   <div>
-                    <Label htmlFor="companyState">State *</Label>
+                    <Label htmlFor="company-state">State *</Label>
                     <Input
-                      id="companyState"
+                      id="company-state"
                       placeholder="Delhi"
                       className="bg-slate-800/50 border-slate-700"
                       {...companyForm.register("address.state")}
                     />
                     {companyForm.formState.errors.address?.state && (
-                      <p className="text-red-400 text-xs mt-1">
-                        {companyForm.formState.errors.address.state.message}
-                      </p>
+                      <p className="text-red-400 text-xs mt-1">{companyForm.formState.errors.address.state.message}</p>
                     )}
                   </div>
 
                   <div>
-                    <Label htmlFor="companyPincode">Pincode *</Label>
+                    <Label htmlFor="company-pincode">Pincode *</Label>
                     <Input
-                      id="companyPincode"
+                      id="company-pincode"
                       placeholder="110001"
                       className="bg-slate-800/50 border-slate-700"
                       {...companyForm.register("address.pincode")}
                     />
                     {companyForm.formState.errors.address?.pincode && (
-                      <p className="text-red-400 text-xs mt-1">
-                        {companyForm.formState.errors.address.pincode.message}
-                      </p>
+                      <p className="text-red-400 text-xs mt-1">{companyForm.formState.errors.address.pincode.message}</p>
                     )}
                   </div>
 
@@ -509,9 +479,7 @@ export default function Register() {
                       {...companyForm.register("password")}
                     />
                     {companyForm.formState.errors.password && (
-                      <p className="text-red-400 text-xs mt-1">
-                        {companyForm.formState.errors.password.message}
-                      </p>
+                      <p className="text-red-400 text-xs mt-1">{companyForm.formState.errors.password.message}</p>
                     )}
                   </div>
 
@@ -525,21 +493,19 @@ export default function Register() {
                       {...companyForm.register("confirmPassword")}
                     />
                     {companyForm.formState.errors.confirmPassword && (
-                      <p className="text-red-400 text-xs mt-1">
-                        {companyForm.formState.errors.confirmPassword.message}
-                      </p>
+                      <p className="text-red-400 text-xs mt-1">{companyForm.formState.errors.confirmPassword.message}</p>
                     )}
                   </div>
                 </div>
 
                 <Button
                   type="submit"
-                  className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold"
+                  className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-6 text-lg"
                   disabled={loading}
                 >
                   {loading ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                       Registering...
                     </>
                   ) : (
@@ -550,7 +516,7 @@ export default function Register() {
             </TabsContent>
           </Tabs>
 
-          <div className="text-center text-sm text-slate-400 mt-6">
+          <div className="text-center text-sm text-slate-400 mt-8">
             Already have an account?{" "}
             <a href="/login" className="text-emerald-400 hover:underline font-medium">
               Login here

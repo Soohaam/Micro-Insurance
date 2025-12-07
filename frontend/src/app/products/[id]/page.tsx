@@ -9,21 +9,21 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Separator } from '@/components/ui/separator';
-import { 
-  Loader2, ArrowLeft, Shield, MapPin, Calendar, 
-  Activity, Info, AlertTriangle, CheckCircle 
+import {
+  Loader2, ArrowLeft, Shield, MapPin, Calendar,
+  Activity, Info, AlertTriangle, CheckCircle
 } from 'lucide-react';
 import axios from 'axios';
 import { useAppSelector } from '@/store/hooks';
 
 interface Product {
-  _id: string;
+  productId: string;
   productName: string;
   description: string;
   company: {
-    _id: string;
-    name: string;
-    email: string;
+    companyId: string;
+    companyName: string;
+    companyEmail: string;
   };
   policyType: string;
   coverageType: string;
@@ -39,6 +39,7 @@ interface Product {
   };
   payoutFormula: string;
   regionsCovered: string[];
+  companyWalletAddress?: string;
 }
 
 export default function ProductDetails() {
@@ -80,10 +81,10 @@ export default function ProductDetails() {
 
   const handlePurchase = () => {
     if (!user) {
-      router.push(`/login?redirect=/products/${product?._id}/purchase`);
+      router.push(`/login?redirect=/products/${product?.productId}/purchase`);
       return;
     }
-    router.push(`/products/${product?._id}/purchase?sumInsured=${sumInsured}`);
+    router.push(`/products/${product?.productId}/purchase?sumInsured=${sumInsured}`);
   };
 
   if (loading) {
@@ -128,7 +129,7 @@ export default function ProductDetails() {
               <CardTitle className="text-3xl font-bold">{product.productName}</CardTitle>
               <CardDescription className="flex items-center gap-2 text-lg mt-2">
                 <Shield className="h-5 w-5 text-primary" />
-                Provided by <span className="font-semibold text-primary">{product.company.name}</span>
+                Provided by <span className="font-semibold text-primary">{product.company.companyName}</span>
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-8">
@@ -169,6 +170,18 @@ export default function ProductDetails() {
                   </div>
                 </div>
               </div>
+
+              {product.companyWalletAddress && (
+                <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-lg">
+                  <h4 className="font-semibold flex items-center gap-2 mb-2">
+                    <Shield className="h-4 w-4 text-purple-500" />
+                    Company Wallet Address
+                  </h4>
+                  <p className="text-sm font-mono text-muted-foreground break-all">
+                    {product.companyWalletAddress}
+                  </p>
+                </div>
+              )}
 
               <div>
                 <h3 className="text-lg font-semibold mb-3">Policy Terms</h3>
@@ -212,7 +225,7 @@ export default function ProductDetails() {
                     ₹{sumInsured.toLocaleString()}
                   </span>
                 </div>
-                
+
                 <Slider
                   value={[sumInsured]}
                   min={product.sumInsuredMin}
@@ -221,7 +234,7 @@ export default function ProductDetails() {
                   onValueChange={(vals) => setSumInsured(vals[0])}
                   className="py-4"
                 />
-                
+
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>Min: ₹{product.sumInsuredMin.toLocaleString()}</span>
                   <span>Max: ₹{product.sumInsuredMax.toLocaleString()}</span>
@@ -249,7 +262,7 @@ export default function ProductDetails() {
               <Button size="lg" className="w-full text-lg h-12" onClick={handlePurchase}>
                 Purchase Policy
               </Button>
-              
+
               <p className="text-xs text-center text-muted-foreground">
                 <CheckCircle className="inline h-3 w-3 mr-1 text-green-500" />
                 Instant policy issuance on blockchain

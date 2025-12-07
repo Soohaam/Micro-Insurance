@@ -14,6 +14,13 @@ module.exports = (sequelize, DataTypes) => {
             },
             onDelete: 'CASCADE',
         },
+        companyWalletAddress: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            validate: {
+                is: /^0x[a-fA-F0-9]{40}$/i, // Ethereum address format
+            },
+        },
         productName: {
             type: DataTypes.STRING,
             allowNull: false,

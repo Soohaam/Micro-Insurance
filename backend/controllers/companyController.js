@@ -34,9 +34,9 @@ exports.uploadDocuments = async (req, res) => {
             status: company.status,
         });
     } catch (error) {
-        res.status(500).json({ 
-            message: "Error uploading documents", 
-            error: error.message 
+        res.status(500).json({
+            message: "Error uploading documents",
+            error: error.message
         });
     }
 };
@@ -65,6 +65,7 @@ exports.createProduct = async (req, res) => {
             policyDocument,
             maxPoliciesPerUser,
             regionsCovered,
+            companyWalletAddress,
         } = req.body;
 
         // Validate required fields
@@ -91,6 +92,7 @@ exports.createProduct = async (req, res) => {
             policyDocument,
             maxPoliciesPerUser: maxPoliciesPerUser || 1,
             regionsCovered: regionsCovered || [],
+            companyWalletAddress: companyWalletAddress || null,
             isActive: true,
         });
 
@@ -99,9 +101,9 @@ exports.createProduct = async (req, res) => {
             product,
         });
     } catch (error) {
-        res.status(500).json({ 
-            message: "Error creating product", 
-            error: error.message 
+        res.status(500).json({
+            message: "Error creating product",
+            error: error.message
         });
     }
 };
@@ -123,9 +125,9 @@ exports.getCompanyProducts = async (req, res) => {
             products,
         });
     } catch (error) {
-        res.status(500).json({ 
-            message: "Error fetching products", 
-            error: error.message 
+        res.status(500).json({
+            message: "Error fetching products",
+            error: error.message
         });
     }
 };
@@ -148,14 +150,14 @@ exports.updateProduct = async (req, res) => {
 
         // Check if there are active policies linked to this product
         const activePolicies = await Policy.count({
-            where: { 
+            where: {
                 productId,
                 status: 'active',
             },
         });
 
         if (activePolicies > 0) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 message: "Cannot update product with active policies",
                 activePolicies,
             });
@@ -169,9 +171,9 @@ exports.updateProduct = async (req, res) => {
             product: updatedProduct,
         });
     } catch (error) {
-        res.status(500).json({ 
-            message: "Error updating product", 
-            error: error.message 
+        res.status(500).json({
+            message: "Error updating product",
+            error: error.message
         });
     }
 };
@@ -200,9 +202,9 @@ exports.deactivateProduct = async (req, res) => {
             product,
         });
     } catch (error) {
-        res.status(500).json({ 
-            message: "Error deactivating product", 
-            error: error.message 
+        res.status(500).json({
+            message: "Error deactivating product",
+            error: error.message
         });
     }
 };
@@ -215,7 +217,7 @@ exports.getDashboardStats = async (req, res) => {
         const companyId = req.user.id;
 
         const company = await Company.findByPk(companyId);
-        
+
         // Get product count
         const productsActive = await Product.count({
             where: { companyId, isActive: true },
@@ -249,9 +251,9 @@ exports.getDashboardStats = async (req, res) => {
             productsActive,
         });
     } catch (error) {
-        res.status(500).json({ 
-            message: "Error fetching dashboard stats", 
-            error: error.message 
+        res.status(500).json({
+            message: "Error fetching dashboard stats",
+            error: error.message
         });
     }
 };
@@ -298,9 +300,9 @@ exports.getCompanyPolicies = async (req, res) => {
             policies,
         });
     } catch (error) {
-        res.status(500).json({ 
-            message: "Error fetching policies", 
-            error: error.message 
+        res.status(500).json({
+            message: "Error fetching policies",
+            error: error.message
         });
     }
 };
