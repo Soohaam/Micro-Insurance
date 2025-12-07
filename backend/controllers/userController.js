@@ -46,9 +46,15 @@ exports.browseProducts = async (req, res) => {
 
         // Calculate sample premiums for display
         const productsWithSamples = filteredProducts.map(product => {
-            const samplePremium = (product.sumInsuredMin * product.baseRate / 100).toFixed(2);
+            const minSum = parseFloat(product.sumInsuredMin);
+            const baseRate = parseFloat(product.baseRate);
+            const samplePremium = (minSum * baseRate / 100).toFixed(2);
+
             return {
                 ...product.toJSON(),
+                sumInsuredMin: minSum,
+                sumInsuredMax: parseFloat(product.sumInsuredMax),
+                baseRate: baseRate,
                 samplePremium: parseFloat(samplePremium),
             };
         });
@@ -96,20 +102,27 @@ exports.getProductDetails = async (req, res) => {
         console.log('Product data exists, generating response...');
 
         // Calculate sample premiums for different coverage amounts
+        const minSum = parseFloat(product.sumInsuredMin);
+        const maxSum = parseFloat(product.sumInsuredMax);
+        const baseRate = parseFloat(product.baseRate);
+
         const sampleCoverages = [
-            product.sumInsuredMin,
-            (product.sumInsuredMin + product.sumInsuredMax) / 2,
-            product.sumInsuredMax,
+            minSum,
+            (minSum + maxSum) / 2,
+            maxSum,
         ];
 
         const premiumExamples = sampleCoverages.map(coverage => ({
             coverage: coverage.toFixed(2),
-            premium: (coverage * product.baseRate / 100).toFixed(2),
+            premium: (coverage * baseRate / 100).toFixed(2),
         }));
 
         console.log('Response prepared successfully');
         res.json({
             ...product.toJSON(),
+            sumInsuredMin: parseFloat(product.sumInsuredMin),
+            sumInsuredMax: parseFloat(product.sumInsuredMax),
+            baseRate: parseFloat(product.baseRate),
             premiumExamples,
         });
     } catch (error) {
