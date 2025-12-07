@@ -66,6 +66,7 @@ exports.createProduct = async (req, res) => {
             maxPoliciesPerUser,
             regionsCovered,
             companyWalletAddress,
+            cost,
         } = req.body;
 
         // Validate required fields
@@ -93,6 +94,7 @@ exports.createProduct = async (req, res) => {
             maxPoliciesPerUser: maxPoliciesPerUser || 1,
             regionsCovered: regionsCovered || [],
             companyWalletAddress: companyWalletAddress || null,
+            cost: cost || null,
             isActive: true,
         });
 

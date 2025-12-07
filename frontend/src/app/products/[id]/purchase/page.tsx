@@ -1,97 +1,62 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { useAppSelector } from '@/store/hooks';
+import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, ArrowLeft, Wallet, MapPin, CheckCircle, AlertCircle } from 'lucide-react';
+import { Loader2, ArrowLeft, Shield, MapPin, Calendar, Activity, CheckCircle, Wallet } from 'lucide-react';
 import axios from 'axios';
+import { useActiveAccount, ConnectButton } from "thirdweb/react";
+import { client } from "@/app/client";
 import { toast } from 'sonner';
 
 interface Product {
   productId: string;
   productName: string;
+  description: string;
   company: {
+    companyId: string;
     companyName: string;
-    walletAddress?: string; // Assuming company model has this, or use fallback
+    companyEmail: string;
+    companyWalletAddress?: string;
   };
+  policyType: string;
+  coverageType: string;
   baseRate: number;
   sumInsuredMin: number;
   sumInsuredMax: number;
   duration: number;
+  oracleTriggerType: string;
+  triggerThreshold: {
+    min: number | null;
+    max: number | null;
+    unit: string;
+  };
+  regionsCovered: string[];
+  cost?: number;
 }
 
-declare global {
-  interface Window {
-    ethereum?: any;
-  }
-}
-
-export default function PurchasePolicy() {
+export default function PurchaseProduct() {
   const params = useParams();
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const { user, token } = useAppSelector((state) => state.auth);
-
+  const account = useActiveAccount();
   const [loading, setLoading] = useState(true);
-  const [processing, setProcessing] = useState(false);
+  const [purchasing, setPurchasing] = useState(false);
   const [product, setProduct] = useState<Product | null>(null);
 
-  // Form State
-  const [sumInsured, setSumInsured] = useState<number>(0);
-  const [premium, setPremium] = useState<number>(0);
-  const [location, setLocation] = useState({
-    lat: '',
-    lng: '',
-    district: '',
-  });
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
-
-  // Wallet State
-  const [walletAddress, setWalletAddress] = useState<string>('');
-  const [walletConnected, setWalletConnected] = useState(false);
-
   useEffect(() => {
-    // Auth & KYC Check
-    if (!user) {
-      router.push(`/login?redirect=/products/${params.id}/purchase`);
-      return;
+    if (params.id) {
+      fetchProduct(params.id as string);
     }
+  }, [params.id]);
 
-    // Check KYC status - Assuming user object has kycStatus
-    // Note: If you need to fetch fresh user data, do it here. 
-    // For now relying on stored user state.
-    if ((user as any).kycStatus !== 'approved') {
-      toast.error('Complete KYC to purchase policies');
-      router.push('/kyc');
-      return;
-    }
-
-    fetchProduct();
-
-    // Initialize Sum Insured from URL
-    const initialSum = parseFloat(searchParams.get('sumInsured') || '0');
-    if (initialSum > 0) setSumInsured(initialSum);
-
-    // Check if wallet is already connected
-    checkWalletConnection();
-  }, [user, params.id]);
-
-  useEffect(() => {
-    if (product && sumInsured) {
-      setPremium((sumInsured * product.baseRate) / 100);
-    }
-  }, [sumInsured, product]);
-
-  const fetchProduct = async () => {
+  const fetchProduct = async (id: string) => {
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/user/products/${params.id}`);
-      setProduct(response.data.product);
-      if (!sumInsured) setSumInsured(response.data.product.sumInsuredMin);
+      setLoading(true);
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/user/products/${id}`);
+      setProduct(response.data);
     } catch (error) {
       console.error('Error fetching product:', error);
       toast.error('Failed to load product details');
@@ -100,302 +65,232 @@ export default function PurchasePolicy() {
     }
   };
 
-  const checkWalletConnection = async () => {
-    if (window.ethereum) {
-      try {
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-        if (accounts.length > 0) {
-          setWalletAddress(accounts[0]);
-          setWalletConnected(true);
-        }
-      } catch (err) {
-        console.error('Error checking wallet:', err);
-      }
-    }
-  };
-
-  const connectWallet = async () => {
-    if (typeof window.ethereum !== 'undefined') {
-      try {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        setWalletAddress(accounts[0]);
-        setWalletConnected(true);
-        toast.success('Wallet connected');
-      } catch (error) {
-        toast.error('Failed to connect wallet');
-      }
-    } else {
-      toast.error('Please install MetaMask to continue');
-    }
-  };
-
-  const getCurrentLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setLocation((prev) => ({
-            ...prev,
-            lat: position.coords.latitude.toString(),
-            lng: position.coords.longitude.toString(),
-          }));
-          toast.success('Location fetched');
-        },
-        (error) => {
-          toast.error('Unable to retrieve location');
-        }
-      );
-    } else {
-      toast.error('Geolocation not supported');
-    }
-  };
-
   const handlePurchase = async () => {
-    if (!walletConnected) {
-      toast.error('Connect wallet first');
+    if (!account?.address) {
+      toast.error('Please connect your wallet first');
       return;
     }
-    if (!location.district || !location.lat || !location.lng) {
-      toast.error('Please provide complete location details');
-      return;
-    }
+
+    if (!product) return;
 
     try {
-      setProcessing(true);
+      setPurchasing(true);
 
-      // 1. Trigger Payment (Simulation or Actual)
-      // Sending 0 value transaction for now or mock value if we were on testnet
-      // In production, this would use the calculated premium (converted to Wei)
-      const transactionParameters = {
-        to: '0x0000000000000000000000000000000000000000', // Burn address or Company Address
-        from: walletAddress,
-        value: '0x0', // 0 ETH for test, replace with premium in hex for real
-        // data: ... (optional: smart contract function call data)
-      };
+      // Here you would implement the actual purchase logic
+      // For now, just showing a success message
+      toast.success('Purchase functionality coming soon!');
 
-      // Simulating payment transaction
-      const txHash = await window.ethereum.request({
-        method: 'eth_sendTransaction',
-        params: [transactionParameters],
-      });
-
-      toast.info('Transaction submitted. Verifying purchase...');
-
-      // 2. Submit to Backend
-      const payload = {
-        productId: product?.productId,
-        sumInsured,
-        startDate,
-        location: {
-          lat: parseFloat(location.lat),
-          lng: parseFloat(location.lng),
-          district: location.district,
-        },
-        walletAddress,
-        transactionHash: txHash,
-      };
-
-      await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/user/policies/purchase`,
-        payload,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      toast.success('Policy purchased successfully!');
-      router.push('/dashboard/user/policies');
+      // TODO: Implement smart contract interaction
+      // TODO: Create policy in backend
+      // TODO: Navigate to confirmation page
 
     } catch (error: any) {
       console.error('Purchase error:', error);
-      toast.error(error.response?.data?.message || 'Transaction failed or cancelled');
+      toast.error(error.response?.data?.message || 'Purchase failed');
     } finally {
-      setProcessing(false);
+      setPurchasing(false);
     }
   };
 
   if (loading || !product) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
-      <Button variant="ghost" onClick={() => router.back()} className="mb-6">
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Cancel Purchase
-      </Button>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Left Column: Form */}
-        <div className="md:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Policy Configuration</CardTitle>
-              <CardDescription>Finalize details for your {product.productName}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-
-              <div className="space-y-2">
-                <Label>Sum Insured (Cover Amount)</Label>
-                <div className="flex gap-4 items-center">
-                  <Input
-                    type="number"
-                    value={sumInsured}
-                    onChange={(e) => setSumInsured(Number(e.target.value))}
-                    min={product.sumInsuredMin}
-                    max={product.sumInsuredMax}
-                  />
-                  <span className="text-sm text-muted-foreground whitespace-nowrap">
-                    Range: {product.sumInsuredMin / 1000}k - {product.sumInsuredMax / 1000}k
-                  </span>
-                </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950">
+      {/* Sticky Header with Wallet */}
+      <header className="border-b border-slate-800/30 backdrop-blur-sm sticky top-0 z-50 bg-slate-900/80">
+        <div className="container max-w-screen-xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" onClick={() => router.back()}>
+              <ArrowLeft className="h-5 w-5 mr-2" />
+              Back
+            </Button>
+            <div className="hidden sm:flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-emerald-500 flex items-center justify-center">
+                <span className="text-white font-bold text-lg">P</span>
               </div>
+              <span className="text-xl font-bold text-white">Purchase Insurance</span>
+            </div>
+          </div>
 
-              <div className="space-y-2">
-                <Label>Coverage Start Date</Label>
-                <Input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
-                />
-              </div>
+          {/* ConnectButton */}
+          <ConnectButton
+            client={client}
+            appMetadata={{
+              name: "Micro Insurance Platform",
+              url: "https://yourdomain.com",
+            }}
+          />
+        </div>
+      </header>
 
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <Label>Insured Location</Label>
-                  <Button variant="outline" size="sm" onClick={getCurrentLocation} type="button">
-                    <MapPin className="mr-2 h-3 w-3" />
-                    Use Current Location
-                  </Button>
+      {/* Main Content */}
+      <div className="container mx-auto p-6 max-w-4xl pt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Product Details */}
+          <div className="lg:col-span-2 space-y-6">
+            <Card className="bg-slate-900/50 border-slate-800 backdrop-blur-sm">
+              <CardHeader>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <Badge className="text-sm px-3 py-1 capitalize" variant="default">
+                    {product.policyType}
+                  </Badge>
+                  <Badge className="text-sm px-3 py-1 capitalize" variant="secondary">
+                    {product.coverageType}
+                  </Badge>
+                </div>
+                <CardTitle className="text-3xl font-bold text-white">{product.productName}</CardTitle>
+                <CardDescription className="flex items-center gap-2 text-lg mt-2 text-slate-300">
+                  <Shield className="h-5 w-5 text-emerald-500" />
+                  Provided by <span className="font-semibold text-emerald-400">{product.company.companyName}</span>
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-3">About this Policy</h3>
+                  <p className="text-slate-300 leading-relaxed text-lg">
+                    {product.description}
+                  </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-xs">Latitude</Label>
-                    <Input
-                      value={location.lat}
-                      onChange={(e) => setLocation(prev => ({ ...prev, lat: e.target.value }))}
-                      placeholder="e.g. 19.0760"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs">Longitude</Label>
-                    <Input
-                      value={location.lng}
-                      onChange={(e) => setLocation(prev => ({ ...prev, lng: e.target.value }))}
-                      placeholder="e.g. 72.8777"
-                    />
-                  </div>
-                </div>
+                <Separator className="bg-slate-700" />
 
-                <div className="space-y-2">
-                  <Label>District / Region</Label>
-                  <Input
-                    value={location.district}
-                    onChange={(e) => setLocation(prev => ({ ...prev, district: e.target.value }))}
-                    placeholder="Enter your district"
-                  />
-                </div>
-              </div>
-
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Payment Method</CardTitle>
-              <CardDescription>Secure payment via Blockchain</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {!walletConnected ? (
-                <div className="text-center py-6">
-                  <Wallet className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="mb-4 text-muted-foreground">Connect your MetaMask wallet to pay the premium</p>
-                  <Button onClick={connectWallet} size="lg" className="w-full md:w-auto">
-                    Connect MetaMask
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-4 bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-900">
-                  <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
-                  <div>
-                    <h4 className="font-semibold text-green-900 dark:text-green-100">Wallet Connected</h4>
-                    <p className="text-sm font-mono text-green-700 dark:text-green-300">
-                      {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-slate-800/50 p-4 rounded-lg">
+                    <h4 className="font-semibold flex items-center gap-2 mb-2 text-white">
+                      <Activity className="h-4 w-4 text-blue-500" />
+                      Trigger Condition
+                    </h4>
+                    <p className="text-sm text-slate-400 mb-1">
+                      When {product.oracleTriggerType} reaches:
+                    </p>
+                    <p className="text-lg font-medium text-slate-200">
+                      {product.triggerThreshold.min !== null
+                        ? `Below ${product.triggerThreshold.min} ${product.triggerThreshold.unit}`
+                        : `Above ${product.triggerThreshold.max} ${product.triggerThreshold.unit}`}
                     </p>
                   </div>
-                  <Button variant="ghost" size="sm" className="ml-auto" onClick={() => setWalletConnected(false)}>
-                    Disconnect
-                  </Button>
+
+                  <div className="bg-slate-800/50 p-4 rounded-lg">
+                    <h4 className="font-semibold flex items-center gap-2 mb-2 text-white">
+                      <MapPin className="h-4 w-4 text-green-500" />
+                      Coverage Area
+                    </h4>
+                    <div className="flex flex-wrap gap-1">
+                      {product.regionsCovered.map((region, idx) => (
+                        <Badge key={idx} variant="outline" className="bg-slate-700">
+                          {region}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-800/50 p-4 rounded-lg">
+                    <h4 className="font-semibold flex items-center gap-2 mb-2 text-white">
+                      <Calendar className="h-4 w-4 text-purple-500" />
+                      Duration
+                    </h4>
+                    <p className="text-lg font-medium text-slate-200">{product.duration} Days</p>
+                  </div>
+
+                  <div className="bg-slate-800/50 p-4 rounded-lg">
+                    <h4 className="font-semibold flex items-center gap-2 mb-2 text-white">
+                      <Shield className="h-4 w-4 text-emerald-500" />
+                      Sum Insured Range
+                    </h4>
+                    <p className="text-lg font-medium text-slate-200">
+                      {product.sumInsuredMin} - {product.sumInsuredMax} ETH
+                    </p>
+                  </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+          </div>
 
-        {/* Right Column: Summary */}
-        <div className="md:col-span-1">
-          <Card className="sticky top-6">
-            <CardHeader className="bg-muted/50">
-              <CardTitle>Order Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-6 space-y-4">
-              <div>
-                <h4 className="font-semibold text-sm text-muted-foreground mb-1">Product</h4>
-                <p className="font-medium">{product.productName}</p>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Sum Insured</span>
-                  <span>₹{sumInsured.toLocaleString()}</span>
+          {/* Purchase Summary Card */}
+          <div className="lg:col-span-1">
+            <Card className="sticky top-24 border-emerald-500/20 shadow-lg bg-slate-900/50 backdrop-blur-sm">
+              <CardHeader className="bg-emerald-500/10 pb-4">
+                <CardTitle className="text-white">Purchase Summary</CardTitle>
+                <CardDescription className="text-slate-300">Review and confirm your purchase</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6 space-y-6">
+                <div className="space-y-4">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-400">Product</span>
+                    <span className="font-medium text-white">{product.productName}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-400">Provider</span>
+                    <span className="font-medium text-white">{product.company.companyName}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-400">Coverage Period</span>
+                    <span className="font-medium text-white">{product.duration} Days</span>
+                  </div>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span>Rate</span>
-                  <span>{product.baseRate}%</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Duration</span>
-                  <span>{product.duration} Days</span>
-                </div>
-              </div>
 
-              <Separator />
+                <Separator className="bg-slate-700" />
 
-              <div className="flex justify-between items-end">
-                <span className="font-semibold">Total to Pay</span>
-                <span className="text-2xl font-bold text-primary">₹{premium.toLocaleString()}</span>
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button
-                onClick={handlePurchase}
-                disabled={!walletConnected || processing || premium <= 0}
-                className="w-full h-12 text-lg"
-              >
-                {processing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Processing...
-                  </>
+                <div className="flex justify-between items-end">
+                  <span className="font-semibold text-white">Total Cost</span>
+                  <span className="text-3xl font-bold text-emerald-400">
+                    {product.cost ? `${product.cost} ETH` : 'N/A'}
+                  </span>
+                </div>
+
+                <Separator className="bg-slate-700" />
+
+                {/* Wallet Status */}
+                {account?.address ? (
+                  <div className="bg-emerald-500/10 border border-emerald-500/30 p-4 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="h-6 w-6 text-emerald-400 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-emerald-400 text-sm">Wallet Connected</h4>
+                        <p className="text-xs font-mono text-emerald-300 truncate">
+                          {account.address}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 ) : (
-                  'Pay & Activate Policy'
+                  <div className="bg-slate-800/50 border border-slate-700 p-4 rounded-lg text-center">
+                    <Wallet className="h-8 w-8 mx-auto text-slate-500 mb-2" />
+                    <p className="text-sm text-slate-400 mb-3">Connect wallet to purchase</p>
+                    <ConnectButton
+                      client={client}
+                      appMetadata={{
+                        name: "Micro Insurance Platform",
+                        url: "https://yourdomain.com",
+                      }}
+                    />
+                  </div>
                 )}
-              </Button>
-            </CardFooter>
-          </Card>
-
-          <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex gap-3">
-            <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-            <p className="text-xs text-blue-800 dark:text-blue-200">
-              By proceeding, you agree to the Smart Contract terms. Claims will be triggered automatically based on Oracle data.
-            </p>
+              </CardContent>
+              <CardFooter>
+                <Button
+                  onClick={handlePurchase}
+                  disabled={!account?.address || purchasing || !product.cost}
+                  className="w-full h-12 text-lg bg-emerald-600 hover:bg-emerald-700"
+                  size="lg"
+                >
+                  {purchasing ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    'Confirm Purchase'
+                  )}
+                </Button>
+              </CardFooter>
+            </Card>
           </div>
         </div>
       </div>

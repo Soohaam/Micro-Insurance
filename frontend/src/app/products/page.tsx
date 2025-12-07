@@ -32,6 +32,7 @@ interface Product {
   sumInsuredMax: number;
   regionsCovered: string[];
   companyWalletAddress?: string;
+  cost?: number;
 }
 
 export default function BrowseProducts() {
@@ -226,8 +227,8 @@ export default function BrowseProducts() {
                       </div>
                     </CardContent>
                     <CardFooter>
-                      <Button asChild className="w-full">
-                        <Link href={`/products/${product.productId}`}>View Details</Link>
+                      <Button asChild className="w-full bg-emerald-600 hover:bg-emerald-700">
+                        <Link href={`/products/${product.productId}/purchase`}>Purchase</Link>
                       </Button>
                     </CardFooter>
                   </Card>

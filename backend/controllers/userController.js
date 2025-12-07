@@ -13,11 +13,11 @@ exports.browseProducts = async (req, res) => {
         const { category, region, minPremium, maxPremium, policyType, coverageType } = req.query;
 
         const where = { isActive: true };
-        
+
         if (policyType) {
             where.policyType = policyType;
         }
-        
+
         if (coverageType) {
             where.coverageType = coverageType;
         }
@@ -39,7 +39,7 @@ exports.browseProducts = async (req, res) => {
         let filteredProducts = products;
 
         if (region) {
-            filteredProducts = filteredProducts.filter(p => 
+            filteredProducts = filteredProducts.filter(p =>
                 p.regionsCovered.includes(region)
             );
         }
@@ -58,9 +58,9 @@ exports.browseProducts = async (req, res) => {
             products: productsWithSamples,
         });
     } catch (error) {
-        res.status(500).json({ 
-            message: "Error browsing products", 
-            error: error.message 
+        res.status(500).json({
+            message: "Error browsing products",
+            error: error.message
         });
     }
 };
@@ -71,6 +71,8 @@ exports.browseProducts = async (req, res) => {
 exports.getProductDetails = async (req, res) => {
     try {
         const { productId } = req.params;
+        console.log('=== GET PRODUCT DETAILS ===');
+        console.log('Product ID:', productId);
 
         const product = await Product.findOne({
             where: { productId, isActive: true },
@@ -84,9 +86,14 @@ exports.getProductDetails = async (req, res) => {
             ],
         });
 
+        console.log('Product found:', product ? 'Yes' : 'No');
+
         if (!product) {
+            console.log('Product not found or not active');
             return res.status(404).json({ message: "Product not found or no longer available" });
         }
+
+        console.log('Product data exists, generating response...');
 
         // Calculate sample premiums for different coverage amounts
         const sampleCoverages = [
@@ -100,14 +107,18 @@ exports.getProductDetails = async (req, res) => {
             premium: (coverage * product.baseRate / 100).toFixed(2),
         }));
 
+        console.log('Response prepared successfully');
         res.json({
             ...product.toJSON(),
             premiumExamples,
         });
     } catch (error) {
-        res.status(500).json({ 
-            message: "Error fetching product details", 
-            error: error.message 
+        console.error('!!! ERROR in getProductDetails !!!');
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        res.status(500).json({
+            message: "Error fetching product details",
+            error: error.message
         });
     }
 };
@@ -151,23 +162,23 @@ exports.purchasePolicy = async (req, res) => {
 
         // Validate sum insured is within product limits
         if (sumInsured < product.sumInsuredMin || sumInsured > product.sumInsuredMax) {
-            return res.status(400).json({ 
-                message: `Sum insured must be between ${product.sumInsuredMin} and ${product.sumInsuredMax}` 
+            return res.status(400).json({
+                message: `Sum insured must be between ${product.sumInsuredMin} and ${product.sumInsuredMax}`
             });
         }
 
         // Check if user has exceeded max policies for this product
         const userPoliciesCount = await Policy.count({
-            where: { 
-                userId, 
+            where: {
+                userId,
                 productId,
                 status: 'active',
             },
         });
 
         if (userPoliciesCount >= product.maxPoliciesPerUser) {
-            return res.status(400).json({ 
-                message: `You have reached the maximum number of policies (${product.maxPoliciesPerUser}) for this product` 
+            return res.status(400).json({
+                message: `You have reached the maximum number of policies (${product.maxPoliciesPerUser}) for this product`
             });
         }
 
@@ -205,8 +216,8 @@ exports.purchasePolicy = async (req, res) => {
 
         // Update company premiums collected
         await Company.increment(
-            'totalPremiumsCollected', 
-            { 
+            'totalPremiumsCollected',
+            {
                 by: premiumAmount,
                 where: { companyId: product.companyId }
             }
@@ -229,9 +240,9 @@ exports.purchasePolicy = async (req, res) => {
         });
     } catch (error) {
         console.error("Error purchasing policy:", error);
-        res.status(500).json({ 
-            message: "Error purchasing policy", 
-            error: error.message 
+        res.status(500).json({
+            message: "Error purchasing policy",
+            error: error.message
         });
     }
 };
@@ -271,7 +282,7 @@ exports.getMyPolicies = async (req, res) => {
             const now = new Date();
             const endDate = new Date(policy.endDate);
             const daysRemaining = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
-            
+
             return {
                 ...policy.toJSON(),
                 daysRemaining: daysRemaining > 0 ? daysRemaining : 0,
@@ -284,9 +295,9 @@ exports.getMyPolicies = async (req, res) => {
             policies: policiesWithDetails,
         });
     } catch (error) {
-        res.status(500).json({ 
-            message: "Error fetching policies", 
-            error: error.message 
+        res.status(500).json({
+            message: "Error fetching policies",
+            error: error.message
         });
     }
 };
@@ -336,9 +347,9 @@ exports.getPolicyStatus = async (req, res) => {
             },
         });
     } catch (error) {
-        res.status(500).json({ 
-            message: "Error fetching policy status", 
-            error: error.message 
+        res.status(500).json({
+            message: "Error fetching policy status",
+            error: error.message
         });
     }
 };
@@ -373,9 +384,9 @@ exports.getMyClaims = async (req, res) => {
             claims,
         });
     } catch (error) {
-        res.status(500).json({ 
-            message: "Error fetching claims", 
-            error: error.message 
+        res.status(500).json({
+            message: "Error fetching claims",
+            error: error.message
         });
     }
 };

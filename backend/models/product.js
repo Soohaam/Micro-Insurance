@@ -21,6 +21,14 @@ module.exports = (sequelize, DataTypes) => {
                 is: /^0x[a-fA-F0-9]{40}$/i, // Ethereum address format
             },
         },
+        cost: {
+            type: DataTypes.DECIMAL(20, 8),
+            allowNull: true,
+            validate: {
+                min: 0,
+            },
+            comment: 'Product cost in ETH',
+        },
         productName: {
             type: DataTypes.STRING,
             allowNull: false,

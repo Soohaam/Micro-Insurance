@@ -41,6 +41,7 @@ interface ProductFormData {
   regionsCovered: string[];
   maxPoliciesPerUser: number;
   companyWalletAddress: string;
+  cost: number;
 }
 
 const policyTypes = ['crop', 'livestock', 'fisherman', 'weather'];
@@ -61,8 +62,8 @@ export default function CreateProduct() {
     description: '',
     policyType: '',
     coverageType: '',
-    sumInsuredMin: 10000,
-    sumInsuredMax: 100000,
+    sumInsuredMin: 0.01,
+    sumInsuredMax: 1.0,
     baseRate: 5.0,
     duration: 180,
     oracleTriggerType: '',
@@ -75,6 +76,7 @@ export default function CreateProduct() {
     regionsCovered: [],
     maxPoliciesPerUser: 2,
     companyWalletAddress: '',
+    cost: 0.05,
   });
 
   // Auto-fill wallet address when wallet connects
@@ -304,28 +306,47 @@ export default function CreateProduct() {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-white">Financial Details</h3>
 
+                <div className="space-y-2">
+                  <Label htmlFor="cost">Product Cost (ETH) *</Label>
+                  <Input
+                    id="cost"
+                    type="number"
+                    step="0.001"
+                    value={formData.cost}
+                    onChange={(e) => handleInputChange('cost', parseFloat(e.target.value))}
+                    min="0.001"
+                    className="bg-slate-800/50 border-slate-700"
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    The cost users will pay to purchase this insurance product
+                  </p>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="sumInsuredMin">Minimum Sum Insured (₹) *</Label>
+                    <Label htmlFor="sumInsuredMin">Minimum Sum Insured (ETH) *</Label>
                     <Input
                       id="sumInsuredMin"
                       type="number"
+                      step="0.001"
                       value={formData.sumInsuredMin}
                       onChange={(e) => handleInputChange('sumInsuredMin', parseFloat(e.target.value))}
-                      min="1000"
+                      min="0.001"
                       className="bg-slate-800/50 border-slate-700"
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="sumInsuredMax">Maximum Sum Insured (₹) *</Label>
+                    <Label htmlFor="sumInsuredMax">Maximum Sum Insured (ETH) *</Label>
                     <Input
                       id="sumInsuredMax"
                       type="number"
+                      step="0.001"
                       value={formData.sumInsuredMax}
                       onChange={(e) => handleInputChange('sumInsuredMax', parseFloat(e.target.value))}
-                      min="1000"
+                      min="0.001"
                       className="bg-slate-800/50 border-slate-700"
                       required
                     />
