@@ -103,7 +103,7 @@ export default function AdminDashboard() {
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-white mb-4">Pending Approvals</h2>
           <div className="grid md:grid-cols-3 gap-6">
-            <Card 
+            <Card
               className="bg-slate-900/50 border-slate-800 hover:border-yellow-500/50 transition-all cursor-pointer"
               onClick={() => router.push('/dashboard/admin/kyc')}
             >
@@ -124,7 +124,7 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
-            <Card 
+            <Card
               className="bg-slate-900/50 border-slate-800 hover:border-blue-500/50 transition-all cursor-pointer"
               onClick={() => router.push('/dashboard/admin/companies')}
             >
@@ -145,7 +145,7 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
-            <Card 
+            <Card
               className="bg-slate-900/50 border-slate-800 hover:border-emerald-500/50 transition-all cursor-pointer"
               onClick={() => router.push('/dashboard/admin/products')}
             >
@@ -155,7 +155,7 @@ export default function AdminDashboard() {
                     <Package className="w-6 h-6 text-emerald-400" />
                   </div>
                   <span className="text-3xl font-bold text-emerald-400">
-                    0
+                    {stats?.products?.pending || 0}
                   </span>
                 </div>
                 <h3 className="font-semibold text-lg mb-1">Product Approvals</h3>
@@ -177,24 +177,24 @@ export default function AdminDashboard() {
                 <CardTitle>Platform Management</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full justify-start"
                   onClick={() => router.push('/dashboard/admin/kyc')}
                 >
                   <Users className="mr-2 h-4 w-4" />
                   Manage KYC
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full justify-start"
                   onClick={() => router.push('/dashboard/admin/companies')}
                 >
                   <Building2 className="mr-2 h-4 w-4" />
                   Manage Companies
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full justify-start"
                   onClick={() => router.push('/dashboard/admin/products')}
                 >

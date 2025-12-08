@@ -10,7 +10,7 @@ const KYC = db.KYC;
 exports.getCompanies = async (req, res) => {
     try {
         const { status } = req.query;
-        
+
         const where = {};
         if (status) {
             where.status = status;
@@ -26,9 +26,9 @@ exports.getCompanies = async (req, res) => {
             companies,
         });
     } catch (error) {
-        res.status(500).json({ 
-            message: "Error fetching companies", 
-            error: error.message 
+        res.status(500).json({
+            message: "Error fetching companies",
+            error: error.message
         });
     }
 };
@@ -48,9 +48,9 @@ exports.getPendingCompanies = async (req, res) => {
             companies,
         });
     } catch (error) {
-        res.status(500).json({ 
-            message: "Error fetching pending companies", 
-            error: error.message 
+        res.status(500).json({
+            message: "Error fetching pending companies",
+            error: error.message
         });
     }
 };
@@ -70,9 +70,9 @@ exports.getCompanyById = async (req, res) => {
 
         res.json(company);
     } catch (error) {
-        res.status(500).json({ 
-            message: "Error fetching company details", 
-            error: error.message 
+        res.status(500).json({
+            message: "Error fetching company details",
+            error: error.message
         });
     }
 };
@@ -86,8 +86,8 @@ exports.updateCompanyStatus = async (req, res) => {
         const { status, remarks } = req.body; // status: 'approved' or 'rejected'
 
         if (!['approved', 'rejected', 'blocked', 'suspended'].includes(status)) {
-            return res.status(400).json({ 
-                message: "Invalid status. Must be 'approved', 'rejected', 'blocked', or 'suspended'" 
+            return res.status(400).json({
+                message: "Invalid status. Must be 'approved', 'rejected', 'blocked', or 'suspended'"
             });
         }
 
@@ -102,8 +102,8 @@ exports.updateCompanyStatus = async (req, res) => {
 
         // TODO: Send email notification to company about status change
 
-        res.json({ 
-            message: `Company status updated to ${status}`, 
+        res.json({
+            message: `Company status updated to ${status}`,
             company: {
                 companyId: company.companyId,
                 companyName: company.companyName,
@@ -112,9 +112,9 @@ exports.updateCompanyStatus = async (req, res) => {
             remarks,
         });
     } catch (error) {
-        res.status(500).json({ 
-            message: "Error updating company status", 
-            error: error.message 
+        res.status(500).json({
+            message: "Error updating company status",
+            error: error.message
         });
     }
 };
@@ -149,9 +149,9 @@ exports.getUsers = async (req, res) => {
             users,
         });
     } catch (error) {
-        res.status(500).json({ 
-            message: "Error fetching users", 
-            error: error.message 
+        res.status(500).json({
+            message: "Error fetching users",
+            error: error.message
         });
     }
 };
@@ -180,9 +180,9 @@ exports.getUserById = async (req, res) => {
 
         res.json(user);
     } catch (error) {
-        res.status(500).json({ 
-            message: "Error fetching user details", 
-            error: error.message 
+        res.status(500).json({
+            message: "Error fetching user details",
+            error: error.message
         });
     }
 };
@@ -197,8 +197,8 @@ exports.updateUserKYCStatus = async (req, res) => {
         const { kycStatus, remarks } = req.body;
 
         if (!['pending', 'verified', 'rejected'].includes(kycStatus)) {
-            return res.status(400).json({ 
-                message: "Invalid KYC status" 
+            return res.status(400).json({
+                message: "Invalid KYC status"
             });
         }
 
@@ -223,9 +223,9 @@ exports.updateUserKYCStatus = async (req, res) => {
             remarks,
         });
     } catch (error) {
-        res.status(500).json({ 
-            message: "Error updating user KYC status", 
-            error: error.message 
+        res.status(500).json({
+            message: "Error updating user KYC status",
+            error: error.message
         });
     }
 };
@@ -259,9 +259,9 @@ exports.updateUserStatus = async (req, res) => {
             reason,
         });
     } catch (error) {
-        res.status(500).json({ 
-            message: "Error updating user status", 
-            error: error.message 
+        res.status(500).json({
+            message: "Error updating user status",
+            error: error.message
         });
     }
 };
@@ -274,13 +274,35 @@ exports.getPlatformStats = async (req, res) => {
         const totalUsers = await User.count();
         const verifiedUsers = await User.count({ where: { kycStatus: 'verified' } });
         const pendingKYC = await KYC.count({ where: { status: 'pending' } });
-        
+
         const totalCompanies = await Company.count();
         const approvedCompanies = await Company.count({ where: { status: 'approved' } });
         const pendingCompanies = await Company.count({ where: { status: 'pending' } });
 
-        const totalPolicies = await db.Policy.count();
-        const activePolicies = await db.Policy.count({ where: { status: 'active' } });
+        const PurchasedProduct = db.PurchasedProduct;
+        const totalPolicies = await PurchasedProduct.count();
+
+        // Calculate active policies
+        // We need to fetch all purchases and check dates because we don't store "active" status in DB
+        const allPolicies = await PurchasedProduct.findAll({
+            attributes: ['purchaseDate', 'duration']
+        });
+
+        const now = new Date();
+        let activePolicies = 0;
+
+        allPolicies.forEach(p => {
+            const purchaseDate = new Date(p.purchaseDate);
+            const durationDays = p.duration || 365;
+            const endDate = new Date(purchaseDate);
+            endDate.setDate(endDate.getDate() + durationDays);
+
+            if (endDate > now) {
+                activePolicies++;
+            }
+        });
+
+        const pendingProducts = await db.Product.count({ where: { approvalStatus: 'pending' } });
 
         const totalClaims = await db.Claim.count();
         const paidClaims = await db.Claim.count({ where: { claimStatus: 'paid' } });
@@ -300,15 +322,18 @@ exports.getPlatformStats = async (req, res) => {
                 total: totalPolicies,
                 active: activePolicies,
             },
+            products: {
+                pending: pendingProducts,
+            },
             claims: {
                 total: totalClaims,
                 paid: paidClaims,
             },
         });
     } catch (error) {
-        res.status(500).json({ 
-            message: "Error fetching platform stats", 
-            error: error.message 
+        res.status(500).json({
+            message: "Error fetching platform stats",
+            error: error.message
         });
     }
 };
@@ -418,8 +443,8 @@ exports.updateProductStatus = async (req, res) => {
         const Product = db.Product;
 
         if (!['approved', 'rejected'].includes(status)) {
-            return res.status(400).json({ 
-                message: "Invalid status. Must be 'approved' or 'rejected'" 
+            return res.status(400).json({
+                message: "Invalid status. Must be 'approved' or 'rejected'"
             });
         }
 
@@ -429,8 +454,8 @@ exports.updateProductStatus = async (req, res) => {
         }
 
         if (product.approvalStatus !== 'pending') {
-            return res.status(400).json({ 
-                message: "Product has already been reviewed" 
+            return res.status(400).json({
+                message: "Product has already been reviewed"
             });
         }
 
