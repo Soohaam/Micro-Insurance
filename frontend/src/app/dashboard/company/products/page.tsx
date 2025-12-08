@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -23,9 +23,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Loader2, MoreHorizontal, Plus, Search, Filter } from 'lucide-react';
+import { Loader2, MoreHorizontal, Plus, Search } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { motion } from 'framer-motion';
 
 interface Product {
   _id: string;
@@ -103,144 +104,164 @@ export default function ManageProducts() {
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
-      pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100',
-      approved: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100',
-      active: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100',
-      rejected: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100',
-      inactive: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100',
+      pending: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
+      approved: 'bg-primary/10 text-primary border-primary/20',
+      active: 'bg-accent/10 text-accent border-accent/20',
+      rejected: 'bg-destructive/10 text-destructive border-destructive/20',
+      inactive: 'bg-muted text-muted-foreground border-border',
     };
     return (
-      <Badge variant="outline" className={`border-0 ${styles[status] || styles.pending}`}>
+      <Badge variant="outline" className={`border ${styles[status] || styles.pending}`}>
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </Badge>
     );
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="min-h-screen bg-background text-foreground container mx-auto p-6 space-y-8">
+      {/* Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px]" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-accent/5 rounded-full blur-[100px]" />
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col md:flex-row md:items-center justify-between gap-4"
+      >
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Manage Products</h1>
+          <h1 className="text-3xl font-display font-bold tracking-tight">Manage Products</h1>
           <p className="text-muted-foreground">View and manage your insurance products</p>
         </div>
-        <Button onClick={() => router.push('/dashboard/company/products/create')}>
+        <Button
+          onClick={() => router.push('/dashboard/company/products/create')}
+          className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-6 shadow-lg shadow-primary/20"
+        >
           <Plus className="mr-2 h-4 w-4" />
           Create New Product
         </Button>
-      </div>
+      </motion.div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Products List</CardTitle>
-            <div className="flex gap-2">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search products..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8 w-[250px]"
-                />
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        <Card className="bg-card/40 border-border/50 backdrop-blur-xl">
+          <CardHeader>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <CardTitle className="font-display">Products List</CardTitle>
+              <div className="flex gap-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search products..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 w-[250px] bg-background/50 border-border/50 focus:border-primary/50 transition-colors"
+                  />
+                </div>
+                <select
+                  className="h-10 rounded-md border border-border/50 bg-background/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                  <option value="all">All Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="rejected">Rejected</option>
+                </select>
               </div>
-              <select
-                className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              >
-                <option value="all">All Status</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="rejected">Rejected</option>
-              </select>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex justify-center p-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Product Name</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Coverage</TableHead>
-                    <TableHead>Base Rate</TableHead>
-                    <TableHead>Sum Insured Range</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredProducts.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
-                        No products found.
-                      </TableCell>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex justify-center p-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <div className="rounded-xl border border-border/50 overflow-hidden">
+                <Table>
+                  <TableHeader className="bg-secondary/30">
+                    <TableRow className="hover:bg-secondary/30 border-border/50">
+                      <TableHead className="text-muted-foreground font-semibold">Product Name</TableHead>
+                      <TableHead className="text-muted-foreground font-semibold">Type</TableHead>
+                      <TableHead className="text-muted-foreground font-semibold">Coverage</TableHead>
+                      <TableHead className="text-muted-foreground font-semibold">Base Rate</TableHead>
+                      <TableHead className="text-muted-foreground font-semibold">Sum Insured Range</TableHead>
+                      <TableHead className="text-muted-foreground font-semibold">Status</TableHead>
+                      <TableHead className="text-right text-muted-foreground font-semibold">Actions</TableHead>
                     </TableRow>
-                  ) : (
-                    filteredProducts.map((product) => (
-                      <TableRow key={product._id}>
-                        <TableCell className="font-medium">{product.productName}</TableCell>
-                        <TableCell className="capitalize">{product.policyType}</TableCell>
-                        <TableCell className="capitalize">{product.coverageType}</TableCell>
-                        <TableCell>{product.baseRate}%</TableCell>
-                        <TableCell>
-                          ₹{product.sumInsuredMin.toLocaleString()} - ₹
-                          {product.sumInsuredMax.toLocaleString()}
-                        </TableCell>
-                        <TableCell>{getStatusBadge(product.status)}</TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem
-                                onClick={() => router.push(`/dashboard/company/products/${product._id}`)}
-                              >
-                                View Details
-                              </DropdownMenuItem>
-                              {product.status !== 'active' && product.status !== 'rejected' && (
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    router.push(`/dashboard/company/products/${product._id}/edit`)
-                                  }
-                                >
-                                  Edit Product
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuSeparator />
-                              {product.status === 'active' && (
-                                <DropdownMenuItem
-                                  className="text-red-600 focus:text-red-600"
-                                  onClick={() => handleDeactivate(product._id)}
-                                >
-                                  Deactivate
-                                </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredProducts.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center h-32 text-muted-foreground">
+                          No products found matching your criteria.
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                    ) : (
+                      filteredProducts.map((product) => (
+                        <TableRow key={product._id} className="hover:bg-card/60 transition-colors border-border/50">
+                          <TableCell className="font-medium text-foreground">{product.productName}</TableCell>
+                          <TableCell className="capitalize text-muted-foreground">{product.policyType}</TableCell>
+                          <TableCell className="capitalize text-muted-foreground">{product.coverageType}</TableCell>
+                          <TableCell className="font-mono text-foreground">{product.baseRate}%</TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {product.sumInsuredMin.toLocaleString()} - {product.sumInsuredMax.toLocaleString()} ETH
+                          </TableCell>
+                          <TableCell>{getStatusBadge(product.status)}</TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-secondary/50">
+                                  <span className="sr-only">Open menu</span>
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="bg-card border-border/50 backdrop-blur-xl">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem
+                                  onClick={() => router.push(`/dashboard/company/products/${product._id}`)}
+                                  className="cursor-pointer focus:bg-primary/10"
+                                >
+                                  View Details
+                                </DropdownMenuItem>
+                                {product.status !== 'active' && product.status !== 'rejected' && (
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      router.push(`/dashboard/company/products/${product._id}/edit`)
+                                    }
+                                    className="cursor-pointer focus:bg-primary/10"
+                                  >
+                                    Edit Product
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuSeparator className="bg-border/50" />
+                                {product.status === 'active' && (
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+                                    onClick={() => handleDeactivate(product._id)}
+                                  >
+                                    Deactivate
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 }
