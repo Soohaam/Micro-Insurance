@@ -1,25 +1,3 @@
-// # Frontend Pages Implementation Guide
-
-// ## ⚠️ IMPORTANT: Complete Implementation
-
-// Due to the large amount of code, I'm providing a structured guide. Each page is production-ready code that you can copy directly into your project.
-
-// ---
-
-// ## 🎯 **Pages Overview**
-
-// ### **Core User Flow:**
-// 1. ✅ `/login` - Already implemented
-// 2. ✅ `/register` - Created (needs full form fields)
-// 3. 📝 `/kyc` - KYC Upload
-// 4. 📝 `/products` - Browse Products
-// 5. 📝 `/products/[id]` - Product DetailsI've created the backend functionality and started the frontend. Let me create a comprehensive guide showing exactly what code to put in each file. Due to the response size limitations, let me create the most critical pages first and document the rest.
-
-// Let me create the **KYC upload page**:
-
-// <function_calls>
-// <invoke name="write_to_file">
-// <parameter name="CodeContent">
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
@@ -30,7 +8,8 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { uploadAadhaar, getKYCStatus } from "@/store/slices/kycSlice";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Upload, CheckCircle, XCircle, Clock, Loader2, FileText } from "lucide-react";
+import { Upload, CheckCircle, XCircle, Clock, Loader2, FileText, ArrowLeft, Shield } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function KYCPage() {
   const router = useRouter();
@@ -40,47 +19,32 @@ export default function KYCPage() {
   const [preview, setPreview] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if user is authenticated
     const token = localStorage.getItem("token");
     if (!token || !isAuthenticated) {
-      toast.error("Please login to access KYC");
       router.push("/login");
       return;
     }
-
-    // Fetch KYC status on mount
-    dispatch(getKYCStatus()).catch((err) => {
-      // If 404, it means no KYC exists yet - this is fine
-      console.log("No KYC found yet - user can upload");
-    });
+    dispatch(getKYCStatus()).catch(() => { });
   }, [dispatch, isAuthenticated, router]);
 
   useEffect(() => {
-    if (error) {
-      toast.error(error);
-    }
+    if (error) toast.error(error);
   }, [error]);
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
       if (acceptedFiles.length === 0) return;
-
       const file = acceptedFiles[0];
-      
-      // Create preview for images
+
       if (file.type.startsWith('image/')) {
         const reader = new FileReader();
-        reader.onloadend = () => {
-          setPreview(reader.result as string);
-        };
+        reader.onloadend = () => setPreview(reader.result as string);
         reader.readAsDataURL(file);
       }
 
-      // Upload to backend
       const result = await dispatch(uploadAadhaar(file));
-      
       if (result.meta.requestStatus === "fulfilled") {
-        toast.success("Aadhaar uploaded successfully! Awaiting admin approval.");
+        toast.success("Details extracted & uploaded! Awaiting admin verification.");
       }
     },
     [dispatch]
@@ -88,193 +52,204 @@ export default function KYCPage() {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: {
-      'image/*': ['.png', '.jpg', '.jpeg'],
-      'application/pdf': ['.pdf']
-    },
-    maxSize: 5 * 1024 * 1024, // 5MB
+    accept: { 'image/*': ['.png', '.jpg', '.jpeg'], 'application/pdf': ['.pdf'] },
+    maxSize: 5 * 1024 * 1024,
     multiple: false,
     disabled: uploading || kyc?.status === 'verified',
   });
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-12 h-12 text-emerald-500 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 p-8">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
+    <div className="min-h-screen bg-background text-foreground p-6 relative">
+      {/* Background */}
+      <div className="fixed inset-0 pointer-events-none -z-10">
+        <div className="absolute top-10 left-10 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[100px]" />
+        <div className="absolute bottom-10 right-10 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[100px]" />
+      </div>
+
+      <div className="max-w-4xl mx-auto pt-8">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="mb-8"
+        >
           <Button
             variant="ghost"
             onClick={() => router.push("/dashboard/user")}
-            className="mb-4"
+            className="mb-4 hover:bg-emerald-500/10 hover:text-emerald-500"
           >
-            ← Back to Dashboard
+            <ArrowLeft className="w-4 h-4 mr-2" /> Back to Dashboard
           </Button>
-          <h1 className="text-4xl font-bold text-white mb-2">KYC Verification</h1>
-          <p className="text-slate-400">Upload your Aadhaar card for verification</p>
-        </div>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-3 bg-emerald-500/10 rounded-xl">
+              <Shield className="w-8 h-8 text-emerald-500" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-display font-bold">KYC Verification</h1>
+              <p className="text-muted-foreground">Identity verification is required to purchase policies</p>
+            </div>
+          </div>
+        </motion.div>
 
         {/* KYC Status Card */}
         {kyc && (
-          <Card className="mb-8 bg-slate-900/50 border-slate-800">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Your KYC Status</span>
-                <div className={`px-4 py-2 rounded-full flex items-center gap-2 ${
-                  kyc.status === 'verified' 
-                    ? 'bg-green-500/20 text-green-400'
-                    : kyc.status === 'rejected'
-                    ? 'bg-red-500/20 text-red-400'
-                    : 'bg-yellow-500/20 text-yellow-400'
-                }`}>
-                  {kyc.status === 'verified' && <CheckCircle className="w-5 h-5" />}
-                  {kyc.status === 'rejected' && <XCircle className="w-5 h-5" />}
-                  {kyc.status === 'pending' && <Clock className="w-5 h-5" />}
-                  <span className="font-semibold">{kyc.status.toUpperCase()}</span>
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-slate-400">Aadhaar Number</p>
-                  <p className="font-mono">{kyc.aadhaarNumber}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-400">Name on Aadhaar</p>
-                  <p>{kyc.aadhaarName}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-400">Submitted On</p>
-                  <p>{new Date(kyc.submittedAt).toLocaleDateString()}</p>
-                </div>
-                {kyc.verifiedAt && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <Card className="mb-8 bg-card/40 border-border/50 backdrop-blur-xl">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Current Status</span>
+                  <div className={`px-4 py-2 rounded-full flex items-center gap-2 border ${kyc.status === 'verified'
+                      ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                      : kyc.status === 'rejected'
+                        ? 'bg-destructive/10 text-destructive border-destructive/20'
+                        : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
+                    }`}>
+                    {kyc.status === 'verified' && <CheckCircle className="w-5 h-5" />}
+                    {kyc.status === 'rejected' && <XCircle className="w-5 h-5" />}
+                    {kyc.status === 'pending' && <Clock className="w-5 h-5" />}
+                    <span className="font-semibold uppercase text-sm tracking-wide">{kyc.status}</span>
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-6 p-4 bg-secondary/20 rounded-xl border border-border/50">
                   <div>
-                    <p className="text-sm text-slate-400">Verified On</p>
-                    <p>{new Date(kyc.verifiedAt).toLocaleDateString()}</p>
+                    <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Aadhaar Number</p>
+                    <p className="font-mono text-lg font-medium">{kyc.aadhaarNumber}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Name on ID</p>
+                    <p className="text-lg font-medium capitalize">{kyc.aadhaarName}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Submitted On</p>
+                    <p className="text-sm">{new Date(kyc.submittedAt).toLocaleDateString()}</p>
+                  </div>
+                  {kyc.verifiedAt && (
+                    <div>
+                      <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Verified On</p>
+                      <p className="text-sm">{new Date(kyc.verifiedAt).toLocaleDateString()}</p>
+                    </div>
+                  )}
+                </div>
+
+                {kyc.status === 'rejected' && kyc.rejectionReason && (
+                  <div className="mt-6 p-4 bg-destructive/10 border border-destructive/20 rounded-xl">
+                    <p className="text-sm font-semibold text-destructive mb-1">Issue Found:</p>
+                    <p className="text-sm text-foreground/80">{kyc.rejectionReason}</p>
                   </div>
                 )}
-              </div>
 
-              {kyc.status === 'rejected' && kyc.rejectionReason && (
-                <div className="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
-                  <p className="text-sm font-semibold text-red-400 mb-1">Rejection Reason:</p>
-                  <p className="text-sm text-slate-300">{kyc.rejectionReason}</p>
-                </div>
-              )}
-
-              {kyc.status === 'pending' && (
-                <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-                  <p className="text-sm text-yellow-400">
-                    ⏳ Your KYC is under review. You'll be notified once it's approved.
-                  </p>
-                </div>
-              )}
-
-              {kyc.status === 'verified' && (
-                <div className="mt-4 p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
-                  <p className="text-sm text-green-400">
-                    ✅ Your KYC is verified! You can now purchase insurance policies.
-                  </p>
-                  <Button
-                    onClick={() => router.push("/products")}
-                    className="mt-4 bg-green-500 hover:bg-green-600"
-                  >
-                    Browse Insurance Products
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                {kyc.status === 'verified' && (
+                  <div className="mt-6">
+                    <Button
+                      onClick={() => router.push("/products")}
+                      className="w-full bg-emerald-500 hover:bg-emerald-600 text-lg py-6"
+                    >
+                      Explore Insurance Products
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
         )}
 
         {/* Upload Section */}
         {(!kyc || kyc.status === 'rejected') && (
-          <Card className="bg-slate-900/50 border-slate-800">
-            <CardHeader>
-              <CardTitle>
-                {kyc?.status === 'rejected' ? 'Re-upload Aadhaar Card' : 'Upload Aadhaar Card'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div
-                {...getRootProps()}
-                className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all ${
-                  isDragActive
-                    ? 'border-emerald-500 bg-emerald-500/10'
-                    : uploading
-                    ? 'border-slate-600 bg-slate-800/50 cursor-not-allowed'
-                    : 'border-slate-700 hover:border-emerald-500 hover:bg-slate-800/50'
-                }`}
-              >
-                <input {...getInputProps()} disabled={uploading} />
-                
-                {uploading ? (
-                  <div className="flex flex-col items-center">
-                    <Loader2 className="w-16 h-16 text-emerald-500 animate-spin mb-4" />
-                    <p className="text-lg font-semibold">Uploading & Processing...</p>
-                    <p className="text-sm text-slate-400 mt-2">
-                      Extracting Aadhaar details using OCR
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    <Upload className="w-16 h-16 mx-auto mb-4 text-slate-400" />
-                    {isDragActive ? (
-                      <p className="text-lg text-emerald-400">Drop your Aadhaar card here...</p>
-                    ) : (
-                      <>
-                        <p className="text-lg mb-2 font-semibold">
-                          Drag & drop your Aadhaar card here
-                        </p>
-                        <p className="text-sm text-slate-400 mb-2">or click to select file</p>
-                        <div className="flex items-center justify-center gap-4 text-xs text-slate-500 mt-4">
-                          <span className="flex items-center gap-1">
-                            <FileText className="w-4 h-4" />
-                            JPG, PNG, PDF
-                          </span>
-                          <span>•</span>
-                          <span>Max 5MB</span>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <Card className="bg-card/40 border-border/50 backdrop-blur-xl">
+              <CardHeader>
+                <CardTitle>
+                  {kyc?.status === 'rejected' ? 'Re-submit Aadhaar' : 'Upload Document'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div
+                  {...getRootProps()}
+                  className={`relative border-2 border-dashed rounded-2xl p-16 text-center cursor-pointer transition-all duration-300 overflow-hidden group ${isDragActive
+                      ? 'border-emerald-500 bg-emerald-500/10'
+                      : uploading
+                        ? 'border-border bg-secondary/30 cursor-not-allowed'
+                        : 'border-border/50 hover:border-emerald-500/50 hover:bg-secondary/30'
+                    }`}
+                >
+                  <input {...getInputProps()} disabled={uploading} />
+
+                  {/* Animated Gradient Background on Hover */}
+                  <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                  {uploading ? (
+                    <div className="flex flex-col items-center relative z-10">
+                      <div className="mb-6 relative">
+                        <div className="w-20 h-20 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <FileText className="w-8 h-8 text-emerald-500" />
                         </div>
-                      </>
-                    )}
-                  </>
-                )}
-              </div>
-
-              {/* Preview */}
-              {preview && !uploading && (
-                <div className="mt-8">
-                  <h3 className="font-semibold mb-4 text-lg">Preview</h3>
-                  <div className="relative rounded-lg overflow-hidden border border-slate-700">
-                    <img 
-                      src={preview} 
-                      alt="Aadhaar Preview" 
-                      className="w-full h-auto"
-                    />
-                  </div>
+                      </div>
+                      <p className="text-xl font-semibold mb-1">Processing Document</p>
+                      <p className="text-muted-foreground animate-pulse">Extracting verified details...</p>
+                    </div>
+                  ) : (
+                    <div className="relative z-10">
+                      <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                        <Upload className="w-10 h-10 text-emerald-500" />
+                      </div>
+                      {isDragActive ? (
+                        <p className="text-xl text-emerald-500 font-semibold">Drop it like it's hot!</p>
+                      ) : (
+                        <>
+                          <p className="text-xl font-semibold mb-2">
+                            Drag & drop your Aadhaar
+                          </p>
+                          <p className="text-muted-foreground mb-6">or click to browse from your device</p>
+                          <div className="inline-flex gap-4 text-xs text-muted-foreground bg-secondary/50 px-4 py-2 rounded-full">
+                            <span className="flex items-center gap-1.5">
+                              <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> JPG, PNG, PDF
+                            </span>
+                            <span className="flex items-center gap-1.5">
+                              <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> Max 5MB
+                            </span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
-              )}
 
-              {/* Info */}
-              <div className="mt-8 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                <p className="text-sm text-blue-400 mb-2 font-semibold">📋 What happens next?</p>
-                <ul className="text-sm text-slate-300 space-y-1 list-disc list-inside">
-                  <li>We'll extract your Aadhaar number and name using OCR</li>
-                  <li>Your document will be securely stored in the cloud</li>
-                  <li>Admin will review and verify your KYC within 24 hours</li>
-                  <li>Once approved, you can purchase insurance policies</li>
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
+                {/* Preview */}
+                {preview && !uploading && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="mt-8"
+                  >
+                    <p className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-emerald-500" /> Selected Document
+                    </p>
+                    <div className="relative rounded-xl overflow-hidden border border-border/50 max-h-[300px] object-cover bg-black/50">
+                      <img
+                        src={preview}
+                        alt="Preview"
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
         )}
       </div>
     </div>

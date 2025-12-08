@@ -12,20 +12,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2, User, Building2, CheckCircle, ArrowLeft } from "lucide-react";
 import { useActiveAccount, ConnectButton } from "thirdweb/react";
 import { client } from "../client";
+import { motion } from "framer-motion";
 
-// Fixed User Schema (removed duplicate walletAddress)
+// Fixed User Schema
 const userSchema = z.object({
   fullName: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   phone: z.string().regex(/^\d{10}$/, "Phone must be 10 digits"),
-  walletAddress: z
-    .string()
-    .regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum wallet address")
-    .optional()
-    .or(z.literal("")),
+  walletAddress: z.string().optional().or(z.literal("")),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string(),
   address: z.object({
@@ -45,11 +42,7 @@ const companySchema = z.object({
   companyEmail: z.string().email("Invalid email address"),
   companyPhone: z.string().regex(/^\d{10}$/, "Phone must be 10 digits"),
   registrationNumber: z.string().min(5, "Registration number required"),
-  walletAddress: z
-    .string()
-    .regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum wallet address")
-    .optional()
-    .or(z.literal("")),
+  walletAddress: z.string().optional().or(z.literal("")),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string(),
   address: z.object({
@@ -98,7 +91,6 @@ export default function Register() {
     },
   });
 
-  // Show error toast
   useEffect(() => {
     if (error) {
       toast.error(error);
@@ -106,18 +98,12 @@ export default function Register() {
     }
   }, [error, dispatch]);
 
-  // Auto-fill wallet address in BOTH forms when wallet connects
   useEffect(() => {
     if (account?.address) {
       const walletAddr = account.address;
-
-      // Auto-fill for both forms
       userForm.setValue("walletAddress", walletAddr, { shouldValidate: true });
       companyForm.setValue("walletAddress", walletAddr, { shouldValidate: true });
-
-      toast.success(
-        `Wallet connected: ${walletAddr.slice(0, 6)}...${walletAddr.slice(-4)}`
-      );
+      toast.success("Wallet connected successfully!");
     }
   }, [account?.address, userForm, companyForm]);
 
@@ -140,390 +126,279 @@ export default function Register() {
   };
 
   const isWalletConnected = !!account?.address;
+  const activeColor = tab === "user" ? "emerald" : "blue";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4">
-      <Card className="w-full max-w-3xl bg-slate-900/50 border-slate-800 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle className="text-3xl font-bold text-center bg-gradient-to-r from-emerald-400 to-blue-500 bg-clip-text text-transparent">
-            Create Account
-          </CardTitle>
-          <CardDescription className="text-center text-slate-400">
-            Register as a user or insurance company
-          </CardDescription>
-          <div className="flex justify-center mt-6">
-            <ConnectButton
-              client={client}
-              appMetadata={{
-                name: "Micro Insurance Platform",
-                url: "https://example.com",
-              }}
-            />
-          </div>
-        </CardHeader>
+    <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4 relative overflow-hidden py-10">
+      {/* Background */}
+      <div className="fixed inset-0 pointer-events-none -z-10">
+        <div className={`absolute top-0 left-0 w-[500px] h-[500px] rounded-full blur-[120px] opacity-20 transition-colors duration-1000 ${tab === 'user' ? 'bg-emerald-500' : 'bg-blue-500'}`} />
+        <div className={`absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full blur-[120px] opacity-20 transition-colors duration-1000 ${tab === 'user' ? 'bg-teal-500' : 'bg-indigo-500'}`} />
+      </div>
 
-        <CardContent>
-          <Tabs value={tab} onValueChange={setTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-8">
-              <TabsTrigger value="user" className="data-[state=active]:bg-emerald-500">
-                User Registration
-              </TabsTrigger>
-              <TabsTrigger value="company" className="data-[state=active]:bg-blue-500">
-                Company Registration
-              </TabsTrigger>
-            </TabsList>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-3xl"
+      >
+        <Card className="bg-card/40 border-border/50 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+          {/* Top Border */}
+          <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r transition-colors duration-500 ${tab === 'user' ? 'from-emerald-400 to-teal-500' : 'from-blue-400 to-indigo-500'}`} />
 
-            {/* Wallet Connected Indicator */}
-            {isWalletConnected && (
-              <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-center">
-                <p className="text-emerald-400 font-medium">
-                  Wallet Connected: {account.address.slice(0, 8)}...{account.address.slice(-6)}
-                </p>
-              </div>
-            )}
+          <CardHeader className="text-center pb-8 pt-8">
+            <div className="flex justify-center mb-6">
+              <ConnectButton
+                client={client}
+                appMetadata={{
+                  name: "FarmShield",
+                  url: "https://example.com",
+                }}
+              />
+            </div>
 
-            {/* USER REGISTRATION */}
-            <TabsContent value="user">
-              <form onSubmit={userForm.handleSubmit(onUserSubmit)} className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="fullName">Full Name *</Label>
-                    <Input
-                      id="fullName"
-                      placeholder="John Doe"
-                      className="bg-slate-800/50 border-slate-700"
-                      {...userForm.register("fullName")}
-                    />
-                    {userForm.formState.errors.fullName && (
-                      <p className="text-red-400 text-xs mt-1">{userForm.formState.errors.fullName.message}</p>
-                    )}
-                  </div>
+            <CardTitle className="text-4xl font-bold font-display tracking-tight mb-2">
+              Create Account
+            </CardTitle>
+            <CardDescription className="text-lg">
+              Join the future of decentralized insurance
+            </CardDescription>
+          </CardHeader>
 
-                  <div>
-                    <Label htmlFor="email">Email *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="john@example.com"
-                      className="bg-slate-800/50 border-slate-700"
-                      {...userForm.register("email")}
-                    />
-                    {userForm.formState.errors.email && (
-                      <p className="text-red-400 text-xs mt-1">{userForm.formState.errors.email.message}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="phone">Phone *</Label>
-                    <Input
-                      id="phone"
-                      placeholder="9876543210"
-                      className="bg-slate-800/50 border-slate-700"
-                      {...userForm.register("phone")}
-                    />
-                    {userForm.formState.errors.phone && (
-                      <p className="text-red-400 text-xs mt-1">{userForm.formState.errors.phone.message}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="user-wallet">Wallet Address {isWalletConnected ? "" : "(Optional)"}</Label>
-                    <Input
-                      id="user-wallet"
-                      placeholder={isWalletConnected ? account.address : "0x..."}
-                      className="bg-slate-800/50 border-slate-700 font-mono text-sm"
-                      disabled={isWalletConnected}
-                      {...userForm.register("walletAddress")}
-                    />
-                    {isWalletConnected && (
-                      <p className="text-emerald-400 text-xs mt-1">Auto-filled from connected wallet</p>
-                    )}
-                    {userForm.formState.errors.walletAddress && !isWalletConnected && (
-                      <p className="text-red-400 text-xs mt-1">{userForm.formState.errors.walletAddress.message}</p>
-                    )}
-                  </div>
-
-                  {/* Address Fields */}
-                  <div>
-                    <Label htmlFor="street">Street Address *</Label>
-                    <Input
-                      id="street"
-                      placeholder="123 Main Street"
-                      className="bg-slate-800/50 border-slate-700"
-                      {...userForm.register("address.street")}
-                    />
-                    {userForm.formState.errors.address?.street && (
-                      <p className="text-red-400 text-xs mt-1">{userForm.formState.errors.address.street.message}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="city">City *</Label>
-                    <Input
-                      id="city"
-                      placeholder="Mumbai"
-                      className="bg-slate-800/50 border-slate-700"
-                      {...userForm.register("address.city")}
-                    />
-                    {userForm.formState.errors.address?.city && (
-                      <p className="text-red-400 text-xs mt-1">{userForm.formState.errors.address.city.message}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="state">State *</Label>
-                    <Input
-                      id="state"
-                      placeholder="Maharashtra"
-                      className="bg-slate-800/50 border-slate-700"
-                      {...userForm.register("address.state")}
-                    />
-                    {userForm.formState.errors.address?.state && (
-                      <p className="text-red-400 text-xs mt-1">{userForm.formState.errors.address.state.message}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="pincode">Pincode *</Label>
-                    <Input
-                      id="pincode"
-                      placeholder="400001"
-                      className="bg-slate-800/50 border-slate-700"
-                      {...userForm.register("address.pincode")}
-                    />
-                    {userForm.formState.errors.address?.pincode && (
-                      <p className="text-red-400 text-xs mt-1">{userForm.formState.errors.address.pincode.message}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="password">Password *</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="••••••••"
-                      className="bg-slate-800/50 border-slate-700"
-                      {...userForm.register("password")}
-                    />
-                    {userForm.formState.errors.password && (
-                      <p className="text-red-400 text-xs mt-1">{userForm.formState.errors.password.message}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="confirmPassword">Confirm Password *</Label>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      placeholder="••••••••"
-                      className="bg-slate-800/50 border-slate-700"
-                      {...userForm.register("confirmPassword")}
-                    />
-                    {userForm.formState.errors.confirmPassword && (
-                      <p className="text-red-400 text-xs mt-1">{userForm.formState.errors.confirmPassword.message}</p>
-                    )}
-                  </div>
-                </div>
-
-                <Button
-                  type="submit"
-                  className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-6 text-lg"
-                  disabled={loading}
+          <CardContent className="px-6 sm:px-10 pb-10">
+            <Tabs value={tab} onValueChange={setTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-8 bg-secondary/30 p-1 rounded-xl">
+                <TabsTrigger
+                  value="user"
+                  className="data-[state=active]:bg-emerald-500 data-[state=active]:text-white transition-all py-3 rounded-lg text-md font-medium"
                 >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Registering...
-                    </>
-                  ) : (
-                    "Register as User"
-                  )}
-                </Button>
-              </form>
-            </TabsContent>
-
-            {/* COMPANY REGISTRATION */}
-            <TabsContent value="company">
-              <form onSubmit={companyForm.handleSubmit(onCompanySubmit)} className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="companyName">Company Name *</Label>
-                    <Input
-                      id="companyName"
-                      placeholder="ABC Insurance Ltd"
-                      className="bg-slate-800/50 border-slate-700"
-                      {...companyForm.register("companyName")}
-                    />
-                    {companyForm.formState.errors.companyName && (
-                      <p className="text-red-400 text-xs mt-1">{companyForm.formState.errors.companyName.message}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="companyEmail">Company Email *</Label>
-                    <Input
-                      id="companyEmail"
-                      type="email"
-                      placeholder="contact@abcinsurance.com"
-                      className="bg-slate-800/50 border-slate-700"
-                      {...companyForm.register("companyEmail")}
-                    />
-                    {companyForm.formState.errors.companyEmail && (
-                      <p className="text-red-400 text-xs mt-1">{companyForm.formState.errors.companyEmail.message}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="companyPhone">Company Phone *</Label>
-                    <Input
-                      id="companyPhone"
-                      placeholder="1234567890"
-                      className="bg-slate-800/50 border-slate-700"
-                      {...companyForm.register("companyPhone")}
-                    />
-                    {companyForm.formState.errors.companyPhone && (
-                      <p className="text-red-400 text-xs mt-1">{companyForm.formState.errors.companyPhone.message}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="registrationNumber">Registration Number *</Label>
-                    <Input
-                      id="registrationNumber"
-                      placeholder="CIN123456789"
-                      className="bg-slate-800/50 border-slate-700"
-                      {...companyForm.register("registrationNumber")}
-                    />
-                    {companyForm.formState.errors.registrationNumber && (
-                      <p className="text-red-400 text-xs mt-1">{companyForm.formState.errors.registrationNumber.message}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="company-wallet">Wallet Address {isWalletConnected ? "" : "(Optional)"}</Label>
-                    <Input
-                      id="company-wallet"
-                      placeholder={isWalletConnected ? account.address : "0x..."}
-                      className="bg-slate-800/50 border-slate-700 font-mono text-sm"
-                      disabled={isWalletConnected}
-                      {...companyForm.register("walletAddress")}
-                    />
-                    {isWalletConnected && (
-                      <p className="text-emerald-400 text-xs mt-1">Auto-filled from connected wallet</p>
-                    )}
-                    {companyForm.formState.errors.walletAddress && !isWalletConnected && (
-                      <p className="text-red-400 text-xs mt-1">{companyForm.formState.errors.walletAddress.message}</p>
-                    )}
-                  </div>
-
-                  {/* Company Address */}
-                  <div>
-                    <Label htmlFor="company-street">Street Address *</Label>
-                    <Input
-                      id="company-street"
-                      placeholder="456 Business Park"
-                      className="bg-slate-800/50 border-slate-700"
-                      {...companyForm.register("address.street")}
-                    />
-                    {companyForm.formState.errors.address?.street && (
-                      <p className="text-red-400 text-xs mt-1">{companyForm.formState.errors.address.street.message}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="company-city">City *</Label>
-                    <Input
-                      id="company-city"
-                      placeholder="Delhi"
-                      className="bg-slate-800/50 border-slate-700"
-                      {...companyForm.register("address.city")}
-                    />
-                    {companyForm.formState.errors.address?.city && (
-                      <p className="text-red-400 text-xs mt-1">{companyForm.formState.errors.address.city.message}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="company-state">State *</Label>
-                    <Input
-                      id="company-state"
-                      placeholder="Delhi"
-                      className="bg-slate-800/50 border-slate-700"
-                      {...companyForm.register("address.state")}
-                    />
-                    {companyForm.formState.errors.address?.state && (
-                      <p className="text-red-400 text-xs mt-1">{companyForm.formState.errors.address.state.message}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="company-pincode">Pincode *</Label>
-                    <Input
-                      id="company-pincode"
-                      placeholder="110001"
-                      className="bg-slate-800/50 border-slate-700"
-                      {...companyForm.register("address.pincode")}
-                    />
-                    {companyForm.formState.errors.address?.pincode && (
-                      <p className="text-red-400 text-xs mt-1">{companyForm.formState.errors.address.pincode.message}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="companyPassword">Password *</Label>
-                    <Input
-                      id="companyPassword"
-                      type="password"
-                      placeholder="••••••••"
-                      className="bg-slate-800/50 border-slate-700"
-                      {...companyForm.register("password")}
-                    />
-                    {companyForm.formState.errors.password && (
-                      <p className="text-red-400 text-xs mt-1">{companyForm.formState.errors.password.message}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="companyConfirmPassword">Confirm Password *</Label>
-                    <Input
-                      id="companyConfirmPassword"
-                      type="password"
-                      placeholder="••••••••"
-                      className="bg-slate-800/50 border-slate-700"
-                      {...companyForm.register("confirmPassword")}
-                    />
-                    {companyForm.formState.errors.confirmPassword && (
-                      <p className="text-red-400 text-xs mt-1">{companyForm.formState.errors.confirmPassword.message}</p>
-                    )}
-                  </div>
-                </div>
-
-                <Button
-                  type="submit"
-                  className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-6 text-lg"
-                  disabled={loading}
+                  <User className="w-4 h-4 mr-2" /> User Registration
+                </TabsTrigger>
+                <TabsTrigger
+                  value="company"
+                  className="data-[state=active]:bg-blue-500 data-[state=active]:text-white transition-all py-3 rounded-lg text-md font-medium"
                 >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Registering...
-                    </>
-                  ) : (
-                    "Register as Company"
-                  )}
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
+                  <Building2 className="w-4 h-4 mr-2" /> Company Registration
+                </TabsTrigger>
+              </TabsList>
 
-          <div className="text-center text-sm text-slate-400 mt-8">
-            Already have an account?{" "}
-            <a href="/login" className="text-emerald-400 hover:underline font-medium">
-              Login here
-            </a>
-          </div>
-        </CardContent>
-      </Card>
+              {isWalletConnected && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className={`mb-8 p-4 rounded-xl border flex items-center gap-3 ${tab === 'user' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-blue-500/10 border-blue-500/20 text-blue-400'
+                    }`}
+                >
+                  <CheckCircle className="w-5 h-5 flex-shrink-0" />
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                    <span className="font-semibold">Wallet Connected:</span>
+                    <span className="font-mono text-xs sm:text-sm text-foreground/80">{account.address}</span>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* USER FORM */}
+              <TabsContent value="user">
+                <form onSubmit={userForm.handleSubmit(onUserSubmit)} className="space-y-6">
+                  {/* Personal Details */}
+                  <div className="space-y-4">
+                    <h3 className="section-title text-emerald-400 font-semibold flex items-center gap-2">
+                      <span className="w-1 h-5 bg-emerald-500 rounded-full"></span>
+                      Personal Details
+                    </h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Full Name</Label>
+                        <Input placeholder="John Doe" className="input-field" {...userForm.register("fullName")} />
+                        {userForm.formState.errors.fullName && <p className="error-text">{userForm.formState.errors.fullName.message}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Phone</Label>
+                        <Input placeholder="9876543210" className="input-field" {...userForm.register("phone")} />
+                        {userForm.formState.errors.phone && <p className="error-text">{userForm.formState.errors.phone.message}</p>}
+                      </div>
+                      <div className="space-y-2 md:col-span-2">
+                        <Label>Email</Label>
+                        <Input type="email" placeholder="john@example.com" className="input-field" {...userForm.register("email")} />
+                        {userForm.formState.errors.email && <p className="error-text">{userForm.formState.errors.email.message}</p>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Address */}
+                  <div className="space-y-4 pt-2">
+                    <h3 className="section-title text-emerald-400 font-semibold flex items-center gap-2">
+                      <span className="w-1 h-5 bg-emerald-500 rounded-full"></span>
+                      Address Details
+                    </h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="space-y-2 md:col-span-2">
+                        <Label>Street Address</Label>
+                        <Input placeholder="123 Main St" className="input-field" {...userForm.register("address.street")} />
+                        {userForm.formState.errors.address?.street && <p className="error-text">{userForm.formState.errors.address.street.message}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <Label>City</Label>
+                        <Input placeholder="Mumbai" className="input-field" {...userForm.register("address.city")} />
+                        {userForm.formState.errors.address?.city && <p className="error-text">{userForm.formState.errors.address.city.message}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <Label>State</Label>
+                        <Input placeholder="Maharashtra" className="input-field" {...userForm.register("address.state")} />
+                        {userForm.formState.errors.address?.state && <p className="error-text">{userForm.formState.errors.address.state.message}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Pincode</Label>
+                        <Input placeholder="400001" className="input-field" {...userForm.register("address.pincode")} />
+                        {userForm.formState.errors.address?.pincode && <p className="error-text">{userForm.formState.errors.address.pincode.message}</p>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Security */}
+                  <div className="space-y-4 pt-2">
+                    <h3 className="section-title text-emerald-400 font-semibold flex items-center gap-2">
+                      <span className="w-1 h-5 bg-emerald-500 rounded-full"></span>
+                      Security
+                    </h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Password</Label>
+                        <Input type="password" placeholder="••••••••" className="input-field" {...userForm.register("password")} />
+                        {userForm.formState.errors.password && <p className="error-text">{userForm.formState.errors.password.message}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Confirm Password</Label>
+                        <Input type="password" placeholder="••••••••" className="input-field" {...userForm.register("confirmPassword")} />
+                        {userForm.formState.errors.confirmPassword && <p className="error-text">{userForm.formState.errors.confirmPassword.message}</p>}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="hidden">
+                    <Input {...userForm.register("walletAddress")} disabled />
+                  </div>
+
+                  <Button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-600 text-lg py-6 mt-4" disabled={loading}>
+                    {loading ? <Loader2 className="animate-spin" /> : "Complete Registration"}
+                  </Button>
+                </form>
+              </TabsContent>
+
+              {/* COMPANY FORM */}
+              <TabsContent value="company">
+                <form onSubmit={companyForm.handleSubmit(onCompanySubmit)} className="space-y-6">
+                  {/* Company Info */}
+                  <div className="space-y-4">
+                    <h3 className="section-title text-blue-400 font-semibold flex items-center gap-2">
+                      <span className="w-1 h-5 bg-blue-500 rounded-full"></span>
+                      Company Info
+                    </h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Company Name</Label>
+                        <Input placeholder="ABC Insurance" className="input-field" {...companyForm.register("companyName")} />
+                        {companyForm.formState.errors.companyName && <p className="error-text">{companyForm.formState.errors.companyName.message}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Registration Number</Label>
+                        <Input placeholder="CIN123456" className="input-field" {...companyForm.register("registrationNumber")} />
+                        {companyForm.formState.errors.registrationNumber && <p className="error-text">{companyForm.formState.errors.registrationNumber.message}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Phone</Label>
+                        <Input placeholder="9876543210" className="input-field" {...companyForm.register("companyPhone")} />
+                        {companyForm.formState.errors.companyPhone && <p className="error-text">{companyForm.formState.errors.companyPhone.message}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Email</Label>
+                        <Input type="email" placeholder="contact@abc.com" className="input-field" {...companyForm.register("companyEmail")} />
+                        {companyForm.formState.errors.companyEmail && <p className="error-text">{companyForm.formState.errors.companyEmail.message}</p>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Address */}
+                  <div className="space-y-4 pt-2">
+                    <h3 className="section-title text-blue-400 font-semibold flex items-center gap-2">
+                      <span className="w-1 h-5 bg-blue-500 rounded-full"></span>
+                      Headquarters Address
+                    </h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="space-y-2 md:col-span-2">
+                        <Label>Street Address</Label>
+                        <Input placeholder="Business Park" className="input-field" {...companyForm.register("address.street")} />
+                        {companyForm.formState.errors.address?.street && <p className="error-text">{companyForm.formState.errors.address.street.message}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <Label>City</Label>
+                        <Input placeholder="City" className="input-field" {...companyForm.register("address.city")} />
+                        {companyForm.formState.errors.address?.city && <p className="error-text">{companyForm.formState.errors.address.city.message}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <Label>State</Label>
+                        <Input placeholder="State" className="input-field" {...companyForm.register("address.state")} />
+                        {companyForm.formState.errors.address?.state && <p className="error-text">{companyForm.formState.errors.address.state.message}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Pincode</Label>
+                        <Input placeholder="110001" className="input-field" {...companyForm.register("address.pincode")} />
+                        {companyForm.formState.errors.address?.pincode && <p className="error-text">{companyForm.formState.errors.address.pincode.message}</p>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Security */}
+                  <div className="space-y-4 pt-2">
+                    <h3 className="section-title text-blue-400 font-semibold flex items-center gap-2">
+                      <span className="w-1 h-5 bg-blue-500 rounded-full"></span>
+                      Security
+                    </h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Password</Label>
+                        <Input type="password" placeholder="••••••••" className="input-field" {...companyForm.register("password")} />
+                        {companyForm.formState.errors.password && <p className="error-text">{companyForm.formState.errors.password.message}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Confirm Password</Label>
+                        <Input type="password" placeholder="••••••••" className="input-field" {...companyForm.register("confirmPassword")} />
+                        {companyForm.formState.errors.confirmPassword && <p className="error-text">{companyForm.formState.errors.confirmPassword.message}</p>}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="hidden">
+                    <Input {...companyForm.register("walletAddress")} disabled />
+                  </div>
+
+                  <Button type="submit" className="w-full bg-blue-500 hover:bg-blue-600 text-lg py-6 mt-4" disabled={loading}>
+                    {loading ? <Loader2 className="animate-spin" /> : "Register Company"}
+                  </Button>
+                </form>
+              </TabsContent>
+            </Tabs>
+
+            <div className="text-center text-sm text-muted-foreground mt-8">
+              Already have an account?{" "}
+              <a
+                href="/login"
+                className={`font-semibold hover:underline ${tab === 'user' ? 'text-emerald-400' : 'text-blue-400'}`}
+              >
+                Login here
+              </a>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      <style jsx global>{`
+        .input-field {
+            @apply bg-background/50 border-border/50 focus:ring-2 transition-all;
+        }
+        .error-text {
+            @apply text-destructive text-xs mt-1;
+        }
+      `}</style>
     </div>
   );
 }

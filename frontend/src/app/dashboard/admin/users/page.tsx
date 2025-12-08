@@ -21,9 +21,11 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Loader2, Search, MoreHorizontal, UserCheck, UserX } from 'lucide-react';
+import { Loader2, Search, MoreHorizontal, UserCheck, UserX, ArrowLeft, Users } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 
 interface User {
   _id: string;
@@ -37,6 +39,7 @@ interface User {
 
 export default function AdminUsers() {
   const { token } = useAppSelector((state) => state.auth);
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -79,138 +82,168 @@ export default function AdminUsers() {
     const matchesSearch =
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     const matchesKyc = kycFilter === 'all' || user.kycStatus === kycFilter;
-    
+
     return matchesSearch && matchesKyc;
   });
 
   const getKycBadge = (status: string) => {
     const styles: Record<string, string> = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      approved: 'bg-green-100 text-green-800',
-      rejected: 'bg-red-100 text-red-800',
-      none: 'bg-gray-100 text-gray-800',
+      pending: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
+      approved: 'bg-green-500/10 text-green-400 border-green-500/20',
+      rejected: 'bg-red-500/10 text-red-400 border-red-500/20',
+      none: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
     };
     return (
-      <Badge variant="outline" className={`border-0 ${styles[status] || styles.none}`}>
+      <Badge variant="outline" className={`border ${styles[status] || styles.none}`}>
         {status.toUpperCase()}
       </Badge>
     );
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
-          <p className="text-muted-foreground">Manage platform users and KYC status</p>
-        </div>
+    <div className="min-h-screen bg-background text-foreground p-4 md:p-8 relative overflow-hidden">
+      {/* Background Elements */}
+      <div className="fixed inset-0 pointer-events-none -z-10">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[120px]" />
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>All Users</CardTitle>
-            <div className="flex gap-2">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search users..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8 w-[250px]"
-                />
-              </div>
-              <select
-                className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                value={kycFilter}
-                onChange={(e) => setKycFilter(e.target.value)}
-              >
-                <option value="all">All KYC Status</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-                <option value="none">Not Submitted</option>
-              </select>
-            </div>
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-4">
+          <div>
+            <Button
+              variant="ghost"
+              onClick={() => router.push("/dashboard/admin")}
+              className="mb-2 text-muted-foreground hover:text-foreground pl-0 hover:bg-transparent"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" /> Back to Dashboard
+            </Button>
+            <h1 className="text-3xl font-bold font-display tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-indigo-500 inline-block">
+              User Management
+            </h1>
+            <p className="text-muted-foreground mt-1">Manage platform users and view their status</p>
           </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex justify-center p-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="bg-purple-500/10 border border-purple-500/20 text-purple-400 px-4 py-2 rounded-lg font-medium flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            Total Users: {users.length}
+          </div>
+        </div>
+
+        <Card className="bg-card/40 border-border/50 backdrop-blur-xl">
+          <CardHeader className="border-b border-border/50 pb-6">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <CardTitle className="text-xl">All Registered Users</CardTitle>
+              <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by name or email..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 w-full md:w-[300px] bg-secondary/30 border-border/50 focus:ring-purple-500"
+                  />
+                </div>
+                <select
+                  className="h-10 rounded-md border border-border/50 bg-secondary/30 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  value={kycFilter}
+                  onChange={(e) => setKycFilter(e.target.value)}
+                >
+                  <option value="all">All KYC Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="none">Not Submitted</option>
+                </select>
+              </div>
             </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>KYC Status</TableHead>
-                    <TableHead>Account Status</TableHead>
-                    <TableHead>Joined</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
-                        No users found.
-                      </TableCell>
+          </CardHeader>
+          <CardContent className="p-0">
+            {loading ? (
+              <div className="flex justify-center p-12">
+                <Loader2 className="h-10 w-10 animate-spin text-purple-500" />
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-secondary/20">
+                    <TableRow className="hover:bg-transparent border-b border-border/50">
+                      <TableHead className="py-4">User</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>KYC Status</TableHead>
+                      <TableHead>Account Status</TableHead>
+                      <TableHead>Joined</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ) : (
-                    filteredUsers.map((user) => (
-                      <TableRow key={user._id}>
-                        <TableCell>
-                          <div className="flex flex-col">
-                            <span className="font-medium">{user.name}</span>
-                            <span className="text-xs text-muted-foreground">{user.email}</span>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredUsers.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center h-32 text-muted-foreground">
+                          <div className="flex flex-col items-center gap-2">
+                            <Search className="w-8 h-8 opacity-20" />
+                            <p>No users found matching your filters.</p>
                           </div>
                         </TableCell>
-                        <TableCell className="capitalize">{user.role}</TableCell>
-                        <TableCell>{getKycBadge(user.kycStatus)}</TableCell>
-                        <TableCell>
-                          <Badge variant={user.status === 'active' ? 'default' : 'destructive'}>
-                            {user.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => handleStatusChange(user._id, user.status === 'active' ? 'inactive' : 'active')}>
-                                {user.status === 'active' ? (
-                                  <>
-                                    <UserX className="mr-2 h-4 w-4" /> Deactivate
-                                  </>
-                                ) : (
-                                  <>
-                                    <UserCheck className="mr-2 h-4 w-4" /> Activate
-                                  </>
-                                )}
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                    ) : (
+                      filteredUsers.map((user) => (
+                        <TableRow key={user._id} className="hover:bg-purple-500/5 border-b border-border/50 transition-colors">
+                          <TableCell className="py-3">
+                            <div className="flex flex-col">
+                              <span className="font-medium text-foreground">{user.name}</span>
+                              <span className="text-xs text-muted-foreground">{user.email}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="capitalize text-muted-foreground">{user.role}</TableCell>
+                          <TableCell>{getKycBadge(user.kycStatus)}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="outline"
+                              className={`${user.status === 'active' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}
+                            >
+                              {user.status.toUpperCase()}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-purple-500/20 hover:text-purple-400">
+                                  <span className="sr-only">Open menu</span>
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="bg-card border-border backdrop-blur-xl">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem
+                                  onClick={() => handleStatusChange(user._id, user.status === 'active' ? 'inactive' : 'active')}
+                                  className="cursor-pointer focus:bg-purple-500/20"
+                                >
+                                  {user.status === 'active' ? (
+                                    <>
+                                      <UserX className="mr-2 h-4 w-4 text-red-400" /> <span className="text-red-400">Deactivate Account</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <UserCheck className="mr-2 h-4 w-4 text-green-400" /> <span className="text-green-400">Activate Account</span>
+                                    </>
+                                  )}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { useAppSelector } from '@/store/hooks';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Package, FileText, DollarSign, Shield, ArrowRight, Activity, Users } from 'lucide-react';
+import { Loader2, Package, FileText, DollarSign, Shield, ArrowRight, Activity, Users, PlusCircle } from 'lucide-react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
 
@@ -134,18 +134,18 @@ export default function CompanyDashboard() {
   const getStatusBadge = (status: string) => {
     const config: Record<string, { className: string; label: string }> = {
       pending: { className: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20', label: 'Pending Approval' },
-      approved: { className: 'bg-primary/10 text-primary border-primary/20', label: 'Approved' },
-      rejected: { className: 'bg-destructive/10 text-destructive border-destructive/20', label: 'Rejected' },
-      blocked: { className: 'bg-destructive/10 text-destructive border-destructive/20', label: 'Blocked' },
+      approved: { className: 'bg-blue-500/10 text-blue-400 border-blue-500/20', label: 'Verified Company' },
+      rejected: { className: 'bg-red-500/10 text-red-500 border-red-500/20', label: 'Rejected' },
+      blocked: { className: 'bg-red-900/10 text-red-500 border-red-900/20', label: 'Blocked' },
     };
     const cfg = config[status] || config.pending;
-    return <Badge variant="outline" className={cfg.className}>{cfg.label}</Badge>;
+    return <Badge variant="outline" className={`${cfg.className} backdrop-blur-md px-4 py-1.5 text-sm`}>{cfg.label}</Badge>;
   };
 
   if (loading && loadingProducts && loadingPolicies) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      <div className="flex items-center justify-center min-h-screen bg-background text-blue-500">
+        <Loader2 className="h-12 w-12 animate-spin" />
       </div>
     );
   }
@@ -159,69 +159,75 @@ export default function CompanyDashboard() {
 
   const stats = [
     {
-      label: 'Total Products',
+      label: 'Products',
       value: totalProducts,
-      subValue: `${activeProducts} active`,
+      subValue: `${activeProducts} Active`,
       icon: Package,
-      delay: 0.1
+      delay: 0.1,
+      color: "text-blue-400",
+      bg: "bg-blue-500/10",
+      border: "border-blue-500/20"
     },
     {
       label: 'Active Policies',
       value: activePolicies,
-      subValue: `${policies.length} total`,
+      subValue: `${policies.length} Total Sold`,
       icon: FileText,
-      delay: 0.2
+      delay: 0.2,
+      color: "text-indigo-400",
+      bg: "bg-indigo-500/10",
+      border: "border-indigo-500/20"
     },
     {
-      label: 'Total Premiums',
+      label: 'Premiums',
       value: formatEth(totalPremiums),
       suffix: 'ETH',
-      subValue: 'Collected',
+      subValue: 'Total Collected',
       icon: DollarSign,
-      delay: 0.3
+      delay: 0.3,
+      color: "text-cyan-400",
+      bg: "bg-cyan-500/10",
+      border: "border-cyan-500/20"
     },
     {
-      label: 'Total Coverage',
+      label: 'Coverage',
       value: formatEth(totalCoverage),
       suffix: 'ETH',
-      subValue: 'Insured',
+      subValue: 'Total Insured Value',
       icon: Shield,
-      delay: 0.4
+      delay: 0.4,
+      color: "text-teal-400",
+      bg: "bg-teal-500/10",
+      border: "border-teal-500/20"
     }
   ];
 
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
+    <div className="min-h-screen bg-background text-foreground overflow-x-hidden selection:bg-blue-500/30">
       {/* Background Elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 -left-1/4 w-[900px] h-[900px] bg-primary/5 rounded-full blur-[180px]" />
-        <div className="absolute -bottom-1/4 -right-1/4 w-[700px] h-[700px] bg-accent/5 rounded-full blur-[150px]" />
+      <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
+        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-blue-600/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-indigo-600/10 rounded-full blur-[120px]" />
       </div>
 
-      {/* Grid Pattern */}
-      <div
-        className="fixed inset-0 pointer-events-none opacity-[0.02]"
-        style={{
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-          backgroundSize: '50px 50px'
-        }}
-      />
-
-      <div className="relative z-10">
+      <div className="relative z-10 p-4 md:p-8">
         {/* Header */}
-        <header className="border-b border-border/40 backdrop-blur-md sticky top-0 z-50 bg-background/80">
-          <div className="container max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20">
-                <span className="text-primary-foreground font-bold text-lg">C</span>
+        <header className="mb-12">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+                <Building2 className="w-6 h-6 text-white" />
               </div>
-              <span className="text-xl font-display font-bold">Company Portal</span>
+              <div>
+                <h1 className="text-3xl font-bold font-display tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-cyan-400">
+                  Company Portal
+                </h1>
+                <p className="text-muted-foreground">Overview of your insurance business</p>
+              </div>
             </div>
 
-            <div className="flex items-center gap-6">
-              <div className="hidden sm:block">
-                {getStatusBadge(companyStatus)}
-              </div>
+            <div className="flex flex-wrap items-center gap-4">
+              {getStatusBadge(companyStatus)}
               <ConnectButton
                 client={client}
                 appMetadata={{
@@ -230,33 +236,14 @@ export default function CompanyDashboard() {
                 }}
                 connectButton={{
                   label: "Connect Wallet",
-                  className: "!bg-primary/10 !text-primary !border !border-primary/20 !font-semibold !px-4 !py-2 !rounded-full hover:!bg-primary/20 transition-all"
+                  className: "!bg-blue-500/10 !text-blue-400 !border !border-blue-500/20 !font-semibold !px-4 !py-2 !rounded-xl hover:!bg-blue-500/20 transition-all !h-10"
                 }}
               />
             </div>
           </div>
         </header>
 
-        <main className="container max-w-7xl mx-auto px-4 py-10 space-y-12">
-          {/* Welcome Section */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="space-y-2"
-            >
-              <h1 className="text-4xl sm:text-5xl font-display font-bold tracking-tight">
-                Company <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">Dashboard</span>
-              </h1>
-              <p className="text-muted-foreground text-lg max-w-2xl">
-                Manage your insurance products, track policies, and monitor performance.
-              </p>
-            </motion.div>
-            <div className="sm:hidden">
-              {getStatusBadge(companyStatus)}
-            </div>
-          </div>
-
+        <main className="max-w-7xl mx-auto space-y-12">
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {stats.map((stat, index) => (
@@ -266,26 +253,26 @@ export default function CompanyDashboard() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: stat.delay }}
               >
-                <div className="group relative overflow-hidden rounded-3xl bg-card/40 border border-border/50 p-6 hover:bg-card/60 transition-colors backdrop-blur-xl">
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className={`group relative overflow-hidden rounded-3xl bg-card/40 border ${stat.border} p-6 hover:bg-card/60 transition-all duration-300 backdrop-blur-xl hover:shadow-lg hover:shadow-blue-500/5`}>
+                  <div className={`absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity`} />
 
-                  <div className="relative flex justify-between items-start mb-4">
-                    <div className="p-3 bg-secondary/50 rounded-2xl group-hover:scale-110 transition-transform duration-300">
-                      <stat.icon className="h-6 w-6 text-primary" />
+                  <div className="flex items-start justify-between mb-4">
+                    <div className={`p-3 rounded-2xl ${stat.bg} ${stat.color} group-hover:scale-110 transition-transform duration-300`}>
+                      <stat.icon className="w-6 h-6" />
                     </div>
                   </div>
 
-                  <div className="relative space-y-1">
+                  <div className="space-y-1">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-bold font-display tracking-tight">
+                      <span className="text-3xl font-bold font-display tracking-tight text-foreground">
                         {stat.value}
                       </span>
                       {stat.suffix && (
-                        <span className="text-sm font-medium text-muted-foreground">{stat.suffix}</span>
+                        <span className={`text-sm font-medium ${stat.color}`}>{stat.suffix}</span>
                       )}
                     </div>
                     <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-                    <p className="text-xs text-primary/80 pt-2">{stat.subValue}</p>
+                    <p className="text-xs text-muted-foreground/60 pt-2 border-t border-border/50 mt-3">{stat.subValue}</p>
                   </div>
                 </div>
               </motion.div>
@@ -298,42 +285,45 @@ export default function CompanyDashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
           >
-            <h2 className="text-2xl font-display font-bold mb-6">Quick Actions</h2>
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+              <Activity className="w-5 h-5 text-blue-400" />
+              Quick Actions
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               <Button
                 onClick={() => router.push('/dashboard/company/products/create')}
-                className="h-auto py-8 bg-gradient-to-br from-primary/80 to-accent/80 hover:from-primary hover:to-accent border-0 rounded-3xl group relative overflow-hidden"
+                className="h-auto py-8 bg-gradient-to-br from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 border-0 rounded-2xl group relative overflow-hidden shadow-lg shadow-blue-500/20"
               >
                 <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                <div className="flex flex-col items-center gap-3 relative z-10">
-                  <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-sm">
-                    <Package className="h-6 w-6 text-white" />
+                <div className="flex flex-col items-center gap-3 relative z-10 text-white">
+                  <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                    <PlusCircle className="h-6 w-6" />
                   </div>
-                  <span className="text-lg font-semibold text-white">Create Product</span>
+                  <span className="text-lg font-semibold">Create Product</span>
                 </div>
               </Button>
 
               <Button
                 onClick={() => router.push('/dashboard/company/products')}
                 variant="outline"
-                className="h-auto py-8 bg-card/40 border-border/50 hover:bg-card/60 hover:border-primary/30 rounded-3xl text-foreground group"
+                className="h-auto py-8 bg-card/40 border-border/50 hover:bg-card/60 hover:border-blue-500/30 rounded-2xl text-foreground group transition-all"
               >
                 <div className="flex flex-col items-center gap-3">
-                  <div className="p-3 bg-secondary/50 rounded-2xl group-hover:bg-primary/10 transition-colors">
-                    <FileText className="h-6 w-6 group-hover:text-primary transition-colors" />
+                  <div className="p-3 bg-secondary/50 rounded-xl group-hover:bg-blue-500/10 transition-colors">
+                    <Package className="h-6 w-6 group-hover:text-blue-400 transition-colors" />
                   </div>
-                  <span className="text-lg font-semibold">View Products</span>
+                  <span className="text-lg font-semibold">Manage Products</span>
                 </div>
               </Button>
 
               <Button
                 onClick={() => router.push('/dashboard/company/policies')}
                 variant="outline"
-                className="h-auto py-8 bg-card/40 border-border/50 hover:bg-card/60 hover:border-primary/30 rounded-3xl text-foreground group"
+                className="h-auto py-8 bg-card/40 border-border/50 hover:bg-card/60 hover:border-indigo-500/30 rounded-2xl text-foreground group transition-all"
               >
                 <div className="flex flex-col items-center gap-3">
-                  <div className="p-3 bg-secondary/50 rounded-2xl group-hover:bg-primary/10 transition-colors">
-                    <Activity className="h-6 w-6 group-hover:text-primary transition-colors" />
+                  <div className="p-3 bg-secondary/50 rounded-xl group-hover:bg-indigo-500/10 transition-colors">
+                    <FileText className="h-6 w-6 group-hover:text-indigo-400 transition-colors" />
                   </div>
                   <span className="text-lg font-semibold">View Policies</span>
                 </div>
@@ -349,14 +339,14 @@ export default function CompanyDashboard() {
           >
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h2 className="text-2xl font-display font-bold mb-1">Recent Products</h2>
-                <p className="text-muted-foreground">Your latest insurance offerings</p>
+                <h2 className="text-2xl font-bold mb-1">Recent Products</h2>
+                <p className="text-muted-foreground">Your latest deployed insurance contracts</p>
               </div>
               {products.length > 0 && (
                 <Button
                   onClick={() => router.push('/dashboard/company/products')}
                   variant="ghost"
-                  className="hover:bg-secondary/50"
+                  className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
                 >
                   View All
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -366,18 +356,18 @@ export default function CompanyDashboard() {
 
             {loadingProducts ? (
               <div className="flex justify-center items-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
               </div>
             ) : products.length === 0 ? (
-              <div className="text-center py-16 bg-card/30 rounded-3xl border border-border/50 border-dashed">
-                <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary/50 mb-4">
-                  <Package className="h-8 w-8 text-muted-foreground" />
+              <div className="text-center py-20 bg-card/30 rounded-3xl border border-blue-500/20 border-dashed backdrop-blur-sm">
+                <div className="inline-flex h-20 w-20 items-center justify-center rounded-full bg-blue-500/10 mb-6">
+                  <Package className="h-10 w-10 text-blue-400" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">No products yet</h3>
-                <p className="text-muted-foreground mb-6 max-w-sm mx-auto">Create your first insurance product to get started with protecting farmers.</p>
+                <h3 className="text-xl font-bold mb-2">No products yet</h3>
+                <p className="text-muted-foreground mb-8 max-w-sm mx-auto">Start by creating your first insurance product to protect farmers against risks.</p>
                 <Button
                   onClick={() => router.push('/dashboard/company/products/create')}
-                  className="rounded-full px-6"
+                  className="rounded-full px-8 bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20"
                 >
                   Create Product
                 </Button>
@@ -393,43 +383,55 @@ export default function CompanyDashboard() {
                   >
                     <div
                       onClick={() => router.push(`/dashboard/company/products/${product._id}`)}
-                      className="group relative bg-card/40 border border-border/50 rounded-3xl p-6 hover:bg-card/60 transition-all cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/5"
+                      className="group relative bg-card/40 border border-border/50 rounded-3xl p-6 hover:bg-card/60 transition-all cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-500/10 hover:border-blue-500/30"
                     >
-                      <div className="absolute top-4 right-4">
-                        <Badge
-                          variant="outline"
-                          className={
-                            product.status === 'active'
-                              ? 'bg-primary/10 text-primary border-primary/20'
-                              : product.status === 'pending'
-                                ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
-                                : 'bg-secondary text-muted-foreground border-border'
-                          }
-                        >
-                          {product.status}
-                        </Badge>
-                      </div>
+                      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl" />
 
-                      <div className="mb-6">
-                        <h3 className="text-xl font-bold mb-1 group-hover:text-primary transition-colors">{product.productName}</h3>
-                        <p className="text-sm text-muted-foreground capitalize">
-                          {product.policyType.replace('_', ' ')} • {product.coverageType.replace('_', ' ')}
-                        </p>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3 mb-6">
-                        <div className="bg-secondary/30 p-3 rounded-2xl">
-                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Base Rate</p>
-                          <p className="font-bold text-lg">{product.baseRate}%</p>
+                      <div className="relative z-10">
+                        <div className="flex justify-between items-start mb-6">
+                          <div className="p-3 bg-blue-500/10 rounded-xl border border-blue-500/20 text-blue-400">
+                            <Shield className="w-6 h-6" />
+                          </div>
+                          <Badge
+                            variant="outline"
+                            className={
+                              product.status === 'active'
+                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                : product.status === 'pending'
+                                  ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
+                                  : 'bg-secondary text-muted-foreground border-border'
+                            }
+                          >
+                            {product.status.toUpperCase()}
+                          </Badge>
                         </div>
-                        <div className="bg-secondary/30 p-3 rounded-2xl">
-                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Min Coverage</p>
-                          <p className="font-bold text-lg">{formatEth(product.sumInsuredMin)} <span className="text-xs font-normal text-muted-foreground">ETH</span></p>
-                        </div>
-                      </div>
 
-                      <div className="flex items-center text-sm font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0 duration-300">
-                        View Details <ArrowRight className="ml-1 h-4 w-4" />
+                        <div className="mb-6">
+                          <h3 className="text-xl font-bold mb-2 group-hover:text-blue-400 transition-colors line-clamp-1">{product.productName}</h3>
+                          <div className="flex gap-2">
+                            <span className="text-xs font-medium px-2 py-1 rounded-md bg-secondary/50 text-muted-foreground capitalize border border-border/50">
+                              {product.policyType.replace('_', ' ')}
+                            </span>
+                            <span className="text-xs font-medium px-2 py-1 rounded-md bg-secondary/50 text-muted-foreground capitalize border border-border/50">
+                              {product.coverageType.replace('_', ' ')}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 mb-6">
+                          <div className="bg-background/40 p-3 rounded-xl border border-border/30">
+                            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Base Rate</p>
+                            <p className="font-bold text-lg text-blue-200">{product.baseRate}%</p>
+                          </div>
+                          <div className="bg-background/40 p-3 rounded-xl border border-border/30">
+                            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Min Coverage</p>
+                            <p className="font-bold text-lg text-indigo-200">{formatEth(product.sumInsuredMin)} <span className="text-xs font-normal text-muted-foreground">ETH</span></p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center text-sm font-medium text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0 duration-300">
+                          View Details <ArrowRight className="ml-1 h-4 w-4" />
+                        </div>
                       </div>
                     </div>
                   </motion.div>
@@ -439,6 +441,11 @@ export default function CompanyDashboard() {
           </motion.div>
         </main>
       </div>
+
+      {/* Imported Building2 icon needs to be added from lucide-react */}
     </div>
   );
 }
+
+// Helper to add missing import if needed (I noticed I used Building2 but imported it above, double checking)
+import { Building2 } from 'lucide-react';
