@@ -354,9 +354,9 @@ export default function Home() {
                 transition={{ delay: 0.9 }}
                 className="flex gap-8 sm:gap-12 pt-8 border-t border-border/50"
               >
-                <StatCard value="10K+" label="Farmers Protected" delay={1} />
-                <StatCard value="$2M+" label="Claims Paid" delay={1.1} />
-                <StatCard value="99.9%" label="Uptime" delay={1.2} />
+                <StatCard value="Secure" label="Blockchain Protection" delay={1} />
+                <StatCard value="Instant" label="Automated Claims" delay={1.1} />
+                <StatCard value="Global" label="Accessible Coverage" delay={1.2} />
               </motion.div>
             </motion.div>
 
@@ -401,8 +401,8 @@ export default function Home() {
                 }}
                 className="absolute top-16 right-4 lg:right-0 px-5 py-3 rounded-2xl bg-card/90 backdrop-blur-xl border border-border/50 shadow-2xl shadow-primary/10"
               >
-                <p className="text-xs text-muted-foreground mb-1">Coverage Active</p>
-                <p className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">+2.5 ETH</p>
+                <p className="text-xs text-muted-foreground mb-1">Platform Status</p>
+                <p className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">Completed</p>
               </motion.div>
 
               <motion.div
@@ -414,10 +414,10 @@ export default function Home() {
                 }}
                 className="absolute bottom-24 left-4 lg:left-0 px-5 py-3 rounded-2xl bg-card/90 backdrop-blur-xl border border-border/50 shadow-2xl shadow-primary/10"
               >
-                <p className="text-xs text-muted-foreground mb-1">Claims Processed</p>
+                <p className="text-xs text-muted-foreground mb-1">System</p>
                 <div className="flex items-center gap-2">
-                  <p className="text-xl font-bold text-foreground">1,247</p>
-                  <span className="text-xs text-primary bg-primary/20 px-2 py-0.5 rounded-full">+12%</span>
+                  <p className="text-xl font-bold text-foreground">Contracts</p>
+                  <span className="text-xs text-primary bg-primary/20 px-2 py-0.5 rounded-full">Ready</span>
                 </div>
               </motion.div>
             </motion.div>
@@ -563,8 +563,8 @@ export default function Home() {
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setCurrentPage(page)}
                     className={`w-12 h-12 rounded-xl font-semibold transition-all ${currentPage === page
-                        ? 'bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-lg shadow-primary/30'
-                        : 'bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border'
+                      ? 'bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-lg shadow-primary/30'
+                      : 'bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border'
                       }`}
                   >
                     {page}
