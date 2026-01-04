@@ -6,13 +6,15 @@ A **blockchain-enabled parametric micro-insurance platform** with KYC verificati
 
 ## 🎯 **Project Overview**
 
-This platform enables low-income users (farmers, laborers, fishermen) to purchase affordable micro-insurance policies with automated claim processing using blockchain oracles.
+The **Micro Insurance Platform** is a decentralized application (DApp) designed to bridge the financial gap for low-income households. By leveraging blockchain technology, we enable farmers, laborers, and gig workers to access affordable, parametric insurance policies that pay out instantly without bureaucratic hurdles.
 
-### **Key Features**
-- **Blockchain Integration**: Secure transactions via ThirdWeb & MetaMask on Sepolia testnet.
-- **Automated Claims**: Smart contract-based claim verification using blockchain oracles.
-- **Verification**: Aadhaar-based KYC with OCR extraction.
-- **Role-Based Access**: Specialized dashboards for Users, Companies, and Admins.
+Our mission is to provide **transparent, tamper-proof, and accessible** coverage for the unbanked, ensuring financial resilience against climate risks and economic uncertainties.
+
+### **✨ Key Features**
+- **🔗 Blockchain & Web3 Integration**: Built on the **Sepolia Testnet** using **ThirdWeb** and **MetaMask** to ensure secure, transparent, and immutable policy management and transactions.
+- **⚡ Automated Parametric Claims**: Smart contracts automatically trigger payouts based on verified oracle data (e.g., weather conditions), eliminating manual claim processing delays.
+- **🆔 Instant KYC Verification**: Integrated **OCR technology (Tesseract.js)** for instant extracting and verifying details from Aadhaar cards, streamlining the onboarding process.
+- **👥 Comprehensive Role Management**: Distinct, tailored web portals for **Users** (policyholders), **Companies** (insurers), and **Admins** to manage the entire insurance lifecycle effectively.
 
 ---
 
@@ -159,4 +161,4 @@ MIT License
 
 ## 👥 **Team**
 
-Built for financial inclusion and accessible insurance for all.
+Built for financial inclusion and accessible insurance for everyone.

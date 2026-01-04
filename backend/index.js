@@ -3,6 +3,7 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const db = require("./models");
 
+// Load environment variables for configuration
 dotenv.config();
 
 const app = express();

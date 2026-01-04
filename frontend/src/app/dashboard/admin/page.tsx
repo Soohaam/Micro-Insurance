@@ -8,6 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Users, Building2, FileCheck, Package, TrendingUp, Clock, CheckCircle } from "lucide-react";
 
+/**
+ * Admin Dashboard Component
+ * Displays platform statistics, pending approvals, and quick action buttons.
+ */
 export default function AdminDashboard() {
   const router = useRouter();
   const [stats, setStats] = useState<any>(null);
