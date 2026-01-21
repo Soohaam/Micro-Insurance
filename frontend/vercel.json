@@ -1,0 +1,15 @@
+{
+  "buildCommand": "npm install && npm run build",
+  "framework": "nextjs",
+  "installCommand": "npm install",
+  "env": {
+    "NEXT_PUBLIC_API_URL": {
+      "description": "Backend API URL (your Render backend URL)",
+      "value": "https://your-backend-name.onrender.com/api"
+    },
+    "NEXT_PUBLIC_TEMPLATE_CLIENT_ID": {
+      "description": "ThirdWeb Template Client ID",
+      "value": ""
+    }
+  }
+}

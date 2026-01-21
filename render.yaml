@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: micro-insurance-backend
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: OCR_API_KEY
+        sync: false
+      - key: FRONTEND_URL
+        value: https://your-frontend-name.vercel.app
+
+databases:
+  - name: micro-insurance-db
+    databaseName: micro_insurance
+    user: micro_insurance_user
+    plan: free
