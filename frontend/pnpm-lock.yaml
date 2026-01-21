@@ -15,15 +15,6 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.2.2(react-hook-form@7.67.0(react@19.1.1))
-      '@next/swc-wasm-nodejs':
-        specifier: ^16.0.6
-        version: 16.0.6
-      '@next/swc-wasm-web':
-        specifier: ^16.0.6
-        version: 16.0.6
-      '@next/swc-win32-x64-msvc':
-        specifier: ^15.4.6
-        version: 15.4.6
       '@radix-ui/react-accordion':
         specifier: ^1.2.12
         version: 1.2.12(@types/react-dom@19.1.7(@types/react@19.1.10))(@types/react@19.1.10)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -752,12 +743,6 @@ packages:
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
-
-  '@next/swc-wasm-nodejs@16.0.6':
-    resolution: {integrity: sha512-+onkyMadAd0VKnyAQ6eJ63bPIhZZU6emn9HRXJ5dV6mzwh0k6Tyuq/zVAOBUSqm7bo+283bFTB0hBusRxUhmtA==}
-
-  '@next/swc-wasm-web@16.0.6':
-    resolution: {integrity: sha512-WV8fpWFKSX37L49A/HoZcb9WJBrQtlzEcIeG1E73LuJk3Topmdu85Ay8dYmiKQg5/HJRjokV0DDArX6OTM8ZzQ==}
 
   '@next/swc-win32-arm64-msvc@15.4.6':
     resolution: {integrity: sha512-FxrsenhUz0LbgRkNWx6FRRJIPe/MI1JRA4W4EPd5leXO00AZ6YU8v5vfx4MDXTvN77lM/EqsE3+6d2CIeF5NYg==}
@@ -4251,6 +4236,7 @@ packages:
   tar@6.2.1:
     resolution: {integrity: sha512-DZ4yORTwrbTj/7MZYq2w+/ZFdI6OZ/f9SFHR+71gIVUZhOQPHzVCLpvRnPgyaMpfWxxk/4ONva3GQSyNIKRv6A==}
     engines: {node: '>=10'}
+    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exhorbitant rates) by contacting i@izs.me
 
   text-table@0.2.0:
     resolution: {integrity: sha512-N+8UisAXDGk8PFXP4HAzVR9nbfmVJ3zYLAWiTIoqC5v5isinhr+r5uaO8+7r3BMfuNIufIsA7RdpVgacC2cSpw==}
@@ -5189,14 +5175,11 @@ snapshots:
   '@next/swc-linux-x64-musl@15.4.6':
     optional: true
 
-  '@next/swc-wasm-nodejs@16.0.6': {}
-
-  '@next/swc-wasm-web@16.0.6': {}
-
   '@next/swc-win32-arm64-msvc@15.4.6':
     optional: true
 
-  '@next/swc-win32-x64-msvc@15.4.6': {}
+  '@next/swc-win32-x64-msvc@15.4.6':
+    optional: true
 
   '@noble/ciphers@1.2.1': {}
 
