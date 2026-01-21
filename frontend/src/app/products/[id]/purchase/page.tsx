@@ -373,7 +373,7 @@ export default function PurchaseProduct() {
                       <div>
                         <p className="text-sm font-semibold text-foreground mb-1">How Claims Are Paid</p>
                         <p className="text-sm text-muted-foreground">
-                          When a claim is triggered, funds are automatically paid to your wallet from the company's
+                          When a claim is triggered, funds are automatically paid to your wallet from the company&apos;s
                           payout address.
                         </p>
                       </div>

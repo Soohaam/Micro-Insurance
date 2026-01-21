@@ -106,10 +106,10 @@ export default function KYCPage() {
                 <CardTitle className="flex items-center justify-between">
                   <span>Current Status</span>
                   <div className={`px-4 py-2 rounded-full flex items-center gap-2 border ${kyc.status === 'verified'
-                      ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
-                      : kyc.status === 'rejected'
-                        ? 'bg-destructive/10 text-destructive border-destructive/20'
-                        : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
+                    ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                    : kyc.status === 'rejected'
+                      ? 'bg-destructive/10 text-destructive border-destructive/20'
+                      : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
                     }`}>
                     {kyc.status === 'verified' && <CheckCircle className="w-5 h-5" />}
                     {kyc.status === 'rejected' && <XCircle className="w-5 h-5" />}
@@ -179,10 +179,10 @@ export default function KYCPage() {
                 <div
                   {...getRootProps()}
                   className={`relative border-2 border-dashed rounded-2xl p-16 text-center cursor-pointer transition-all duration-300 overflow-hidden group ${isDragActive
-                      ? 'border-emerald-500 bg-emerald-500/10'
-                      : uploading
-                        ? 'border-border bg-secondary/30 cursor-not-allowed'
-                        : 'border-border/50 hover:border-emerald-500/50 hover:bg-secondary/30'
+                    ? 'border-emerald-500 bg-emerald-500/10'
+                    : uploading
+                      ? 'border-border bg-secondary/30 cursor-not-allowed'
+                      : 'border-border/50 hover:border-emerald-500/50 hover:bg-secondary/30'
                     }`}
                 >
                   <input {...getInputProps()} disabled={uploading} />
@@ -211,7 +211,7 @@ export default function KYCPage() {
                       ) : (
                         <>
                           <p className="text-xl font-semibold mb-2">
-                            Drag & drop your Aadhaar
+                            Drag &amp; drop your Aadhaar
                           </p>
                           <p className="text-muted-foreground mb-6">or click to browse from your device</p>
                           <div className="inline-flex gap-4 text-xs text-muted-foreground bg-secondary/50 px-4 py-2 rounded-full">

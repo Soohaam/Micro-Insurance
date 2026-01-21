@@ -132,7 +132,7 @@ export default function MyClaims() {
                       </TableCell>
                       <TableCell>
                         {claim.transactionHash ? (
-                          <a 
+                          <a
                             href={`https://etherscan.io/tx/${claim.transactionHash}`}
                             target="_blank"
                             rel="noopener noreferrer"
@@ -152,14 +152,14 @@ export default function MyClaims() {
           </div>
         </CardContent>
       </Card>
-      
+
       <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg flex items-start gap-3">
         <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
         <div>
           <h4 className="font-semibold text-blue-900 dark:text-blue-100 text-sm">How Claims Work</h4>
           <p className="text-sm text-blue-700 dark:text-blue-300">
-            Claims are triggered automatically by our Oracle system when weather conditions match your policy criteria. 
-            Once triggered, payouts are processed instantly via smart contracts. You don't need to file manual claims.
+            Claims are triggered automatically by our Oracle system when weather conditions match your policy criteria.
+            Once triggered, payouts are processed instantly via smart contracts. You don&apos;t need to file manual claims.
           </p>
         </div>
       </div>
