@@ -207,7 +207,7 @@ export default function KYCPage() {
                         <Upload className="w-10 h-10 text-emerald-500" />
                       </div>
                       {isDragActive ? (
-                        <p className="text-xl text-emerald-500 font-semibold">Drop it like it's hot!</p>
+                        <p className="text-xl text-emerald-500 font-semibold">Drop it like it&apos;s hot!</p>
                       ) : (
                         <>
                           <p className="text-xl font-semibold mb-2">
