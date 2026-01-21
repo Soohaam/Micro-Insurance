@@ -81,13 +81,25 @@ After you have your Vercel frontend URL, you can update the backend's `FRONTEND_
    - **Build Command**: `npm run build` (default)
    - **Output Directory**: `.next` (default)
 
-5. **Add Environment Variables**:
-   ```
-   NEXT_PUBLIC_API_URL=https://your-backend-name.onrender.com/api
-   NEXT_PUBLIC_TEMPLATE_CLIENT_ID=<your ThirdWeb client ID>
-   ```
+5. **Add Environment Variables** (IMPORTANT - Do this in the Vercel dashboard):
    
-   Replace `your-backend-name` with your actual Render backend URL from Part 1, Step 2.
+   During the import process, scroll down to find the **Environment Variables** section:
+   
+   **Add these variables one by one:**
+   
+   | Name | Value |
+   |------|-------|
+   | `NEXT_PUBLIC_API_URL` | `https://your-backend-name.onrender.com/api` |
+   | `NEXT_PUBLIC_TEMPLATE_CLIENT_ID` | `your_thirdweb_client_id` |
+   
+   **How to add each variable:**
+   - Click in the "Name" field and type the variable name (e.g., `NEXT_PUBLIC_API_URL`)
+   - Click in the "Value" field and paste the value
+   - Click "Add" to add the variable
+   - Repeat for each variable
+   
+   > **Note**: Replace `your-backend-name` with your actual Render backend URL from Part 1, Step 2.
+   > The URL should include `/api` at the end.
 
 6. Click **Deploy**
 7. Wait for deployment to complete (3-5 minutes)
